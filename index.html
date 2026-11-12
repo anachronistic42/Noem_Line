@@ -156,14 +156,14 @@ async function ensureThumbs(ids){const need=ids.filter(i=>!(i in S.thumbs));if(!
 function paintThumbs(){document.querySelectorAll("[data-th]").forEach(e=>{const t=S.thumbs[e.dataset.th];if(t)e.style.backgroundImage="url("+t+")"})}
 
 /* ---------- импорт .noemocean ---------- */
-function srcOf(r){try{const v=(r.sbVars||[])[0];const src=Array.isArray(v)?v[(r.sbSel||[])[0]||0]||v[0]:v;return typeof src==="string"&&src.startsWith("data:image")?src:""}catch(e){return""}}
-function scaled(r,max,q,blob){return new Promise(res=>{const src=srcOf(r);if(!src)return res(blob?null:"");
+function srcOf(r,i){i=i||0;try{const v=(r.sbVars||[])[i];const src=Array.isArray(v)?v[(r.sbSel||[])[i]||0]||v[0]:v;return typeof src==="string"&&src.startsWith("data:image")?src:""}catch(e){return""}}
+function scaled(r,max,q,blob,ix){return new Promise(res=>{const src=srcOf(r,ix);if(!src)return res(blob?null:"");
  const im=new Image();im.onload=()=>{try{const W=im.naturalWidth||im.width,H=im.naturalHeight||im.height,k=Math.min(1,max/Math.max(W,H)),w=Math.max(1,Math.round(W*k)),h=Math.max(1,Math.round(H*k)),c=document.createElement("canvas");c.width=w;c.height=h;
   const x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(im,0,0,w,h);
   if(blob)c.toBlob(b=>res(b),"image/jpeg",q);else res(c.toDataURL("image/jpeg",q))}catch(e){res(blob?null:"")}};
  im.onerror=()=>res(blob?null:"");im.src=src})}
 const thumbOf=r=>scaled(r,480,.8,false);
-const fullOf=r=>scaled(r,1600,.88,true);
+const fullOf=(r,ix)=>scaled(r,1600,.88,true,ix);
 async function importFile(f){
  let d;try{d=JSON.parse(await f.text())}catch(e){return toast("Не удалось прочитать файл")}
  if(d.password){const p=await askText("Пароль проекта",true);if(p!==d.password)return toast("Неверный пароль")}
@@ -183,7 +183,8 @@ async function importFile(f){
  }catch(e){toast("Ошибка импорта: "+errText(e))}
  await boot(true);
  if(!S.bound)return;
- const todo=shots.filter(h=>{const c=S.shots.find(x=>x.id===h.id);return srcOf(rowOf[h.id])&&!(c&&c.full_id)}).map(h=>({id:h.id,row:rowOf[h.id]}));
+ const todo=[];for(const h of shots){const c=S.shots.find(x=>x.id===h.id)||{},r=rowOf[h.id],ex=c.full_extra||[];
+  for(let i=0;i<(r.sbVars||[]).length;i++){if(!srcOf(r,i))continue;if(i===0?c.full_id:(ex[i-1]&&ex[i-1].id))continue;todo.push({id:h.id,row:r,idx:i})}}
  if(todo.length&&await askYes("Отправить картинки раскадровки в топики Telegram ("+todo.length+" шт.)? Топики для кадров создадутся сами.\nЭто займёт несколько минут: у Telegram есть ограничение на скорость. Приложение нужно держать открытым."))await imagesSheet(todo);
  const left=S.shots.filter(h=>!h.topic_id).length;
  if(left&&await askYes("Создать в группе Telegram топики для остальных кадров ("+left+")?\nЭто займёт несколько минут: у Telegram есть ограничение на скорость."))topicsSheet()}
@@ -195,8 +196,8 @@ function imagesSheet(items){return new Promise(done=>{
  (async()=>{let n=0;
   for(const it of items){
    while(!stop){
-    try{const blob=await fullOf(it.row);if(!blob)break;
-     const fd=new FormData();fd.append("action","shot_image");fd.append("id",it.id);fd.append("file",blob,"shot.jpg");
+    try{const blob=await fullOf(it.row,it.idx);if(!blob)break;
+     const fd=new FormData();fd.append("action","shot_image");fd.append("id",it.id);fd.append("idx",String(it.idx||0));fd.append("file",blob,"shot.jpg");
      const r=await handle(await fetch(API,{method:"POST",headers:AH(),body:fd}));
      if(r.wait){say(`Отправлено ${n} из ${total}. Telegram просит подождать ${r.wait} с…`);await sleep((r.wait+1)*1000);continue}
      break
@@ -287,16 +288,17 @@ function viewShot(id){const h=S.shots.find(x=>x.id===id),m=$("#main");if(!h){m.i
  pollOnce(true)}
 let headSig="";
 function paintHead(force){const h=S.shots.find(x=>x.id===S.curShot),hd=$("#hd");if(!h||!hd)return;
- const st=stOfShot(h),sig=JSON.stringify([st,S.stage,S.stages,h.assignees,h.topic_id,h.action,S.members.length]);if(!force&&sig===headSig)return;headSig=sig;
+ const st=stOfShot(h),sig=JSON.stringify([st,S.stage,S.stages,h.assignees,h.topic_id,h.action,S.members.length,h.full_extra]);if(!force&&sig===headSig)return;headSig=sig;
  const ed=canEdit(h),cl=ed?"":" disabled";
+ const xs=(h.full_extra||[]).filter(e=>e&&e.id),xr=xs.length?`<div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px">${xs.map(e=>`<span class="th" data-xf="${e.id}" style="width:150px;height:92px"></span>`).join("")}</div>`:"";
  const sr=(S.stages.length||S.me.owner)?`<div class="seg" style="margin-top:10px">${S.stages.map(s=>`<button class="${s.id===S.stage?"on":""}" data-stage="${s.id}">${esc(s.name)}</button>`).join("")}${S.me.owner?`<button data-act="stages">⚙ Этапы</button>`:""}</div>`:"";
  hd.innerHTML=`<div class="row" style="align-items:flex-start"><span class="th" data-th="${h.id}" style="width:150px;height:92px"></span><span class="grow"><div class="sub" style="-webkit-line-clamp:4">${esc(h.action||"Без описания")}</div><div class="sub">${[h.scale,h.montage,h.tc&&("хрон "+h.tc)].filter(Boolean).map(esc).join(" · ")}</div>${h.sound?`<div class="sub">♪ ${esc(h.sound)}</div>`:""}</span></div>
- ${sr}<div class="h2">Статус</div><div class="seg">${ST.map(s=>`<button class="${st.status===s[0]?"on":""}" style="--c:var(${s[2]})" data-st="${s[0]}"${cl}>${s[1]}</button>`).join("")}</div>
+ ${xr}${sr}<div class="h2">Статус</div><div class="seg">${ST.map(s=>`<button class="${st.status===s[0]?"on":""}" style="--c:var(${s[2]})" data-st="${s[0]}"${cl}>${s[1]}</button>`).join("")}</div>
  <div class="h2">Выполнено: <span id="pv">${st.progress}</span>%</div><input type="range" min="0" max="100" step="5" value="${st.progress}" id="pr"${cl}>
  <div class="h2">Исполнители</div><div class="seg">${(h.assignees||[]).map(a=>`<span class="chip" style="--c:var(--acc)">${esc(nm(a))} · ${esc((mm(a)&&mm(a).role)||"")}</span>`).join("")||`<span class="sub">никого</span>`}${has("assign")?`<button class="chip" data-act="assign" style="--c:var(--acc)">＋ назначить</button>`:""}</div>`;
  const pr=$("#pr");pr.oninput=()=>$("#pv").textContent=pr.value;
  pr.onchange=()=>{const v=+pr.value;setShot(h,{progress:v,...(v===100?{status:"done"}:(st.status==="todo"&&v>0?{status:"work"}:{}))})};
- paintThumbs();ensureThumbs([h.id])}
+ paintThumbs();ensureThumbs([h.id]);hd.querySelectorAll("[data-xf]").forEach(e=>fileBlob(e.dataset.xf).then(u=>{e.style.backgroundImage="url("+u+")"}).catch(()=>{}))}
 function modeLine(){const e=$("#md");if(!e)return;const f=S.pendingFile;
  e.innerHTML=(S.fixMode?"Режим: правка":"")+(f?` <span>Файл: ${esc(f.name)} (${fmtSize(f.size)})</span>${/^image\//.test(f.type)?`<button data-act="asfile">${S.asFile?"✓ без сжатия":"без сжатия"}</button>`:""}<button data-act="dropfile">убрать</button>`:"")}
 function setPicked(f){if(!f)return;if(f.size>50*1024*1024){toast(ERR.too_big);return}S.pendingFile=f;S.asFile=false;modeLine()}
@@ -379,6 +381,7 @@ $("#main").onclick=e=>{const t=e.target;
  const o=t.closest("[data-open]");if(o){const h=S.shots.find(x=>x.id===S.curShot);return openTg("https://t.me/c/"+S.chat+"/"+o.dataset.open+"?thread="+h.topic_id)}
  const tm=t.closest("[data-tome]");if(tm){return call("send_to_me",{id:+tm.dataset.tome}).then(()=>toast("Отправлено вам в личку от бота")).catch(e=>toast(errText(e)))}
  const f=t.closest("[data-fx]");if(f&&has("fix"))return call("toggle_fix",{id:+f.dataset.fx}).then(()=>pollOnce(true)).catch(e=>toast(errText(e)));
+ const xf0=t.closest("#hd [data-xf]");if(xf0){fileBlob(xf0.dataset.xf).then(u=>openLb(u)).catch(e=>toast(errText(e)));return}
  const th0=t.closest("#hd .th");if(th0){const id=th0.dataset.th,u=S.thumbs[id],sh=S.shots.find(x=>x.id===id);if(u)openLb(u,sh&&sh.full_id?()=>fileBlob(sh.full_id):null);return}
  const im=t.closest(".msg img");if(im&&im.src){const l=document.createElement("div");l.className="lb";l.innerHTML=`<img src="${im.src}">`;l.onclick=()=>l.remove();document.body.append(l);
   const full=im.dataset.full;if(full&&full!==im.dataset.fid)fileBlob(full).then(u=>{const x=l.querySelector("img");if(x)x.src=u}).catch(()=>{})}};
