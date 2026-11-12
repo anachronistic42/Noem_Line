@@ -58,6 +58,11 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 .msg img{display:block;max-width:100%;max-height:340px;border-radius:8px;margin:4px 0;cursor:zoom-in;background:var(--line);min-height:60px;min-width:120px}
 .file{display:flex;flex-direction:column;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:4px 0;white-space:normal}
 .file .fn{font-weight:500;overflow-wrap:anywhere}
+.msg.sel{outline:2px solid var(--acc);outline-offset:1px}
+.msg[data-mid]{-webkit-tap-highlight-color:transparent}
+@media (pointer:coarse){.msg[data-mid]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}}
+#hd .sub{-webkit-line-clamp:unset;display:block;overflow:visible;overflow-wrap:anywhere;white-space:pre-wrap}
+#hd .grow{min-width:0}
 .acts{display:flex;gap:6px;flex-wrap:wrap;white-space:normal;margin-top:4px}
 .acts button{font-size:12px;border:1px solid var(--line);border-radius:14px;padding:2px 9px;color:var(--acc)}
 .tag{font-size:11px;font-weight:600;border-radius:6px;padding:1px 6px;margin-right:6px;color:var(--accT);background:var(--s1)}
@@ -78,7 +83,7 @@ body.dz::after{content:"Отпустите файл, чтобы прикрепи
 </style>
 </head>
 <body>
-<header><button class="ib" id="back" hidden>‹</button><h1 id="ttl">Noem.pipeline</h1><button class="ib" id="cfg" hidden title="Настройки"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></header>
+<header><button class="ib" id="back" hidden>‹</button><h1 id="ttl">Noem.pipeline</h1><button class="ib" id="hx" hidden title="Снять выбор"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button><button class="ib" id="hpin" hidden title="Закрепить / открепить"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5M9 3h6l-1 6 3 3v2H7v-2l3-3z"/></svg></button><button class="ib" id="hdel" hidden title="Удалить"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button><button class="ib" id="cfg" hidden title="Настройки"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></header>
 <main id="main"></main>
 <div id="foot"></div>
 <nav id="nav"><button data-r="scenes">Сцены</button><button data-r="team">Команда</button></nav>
@@ -97,7 +102,7 @@ const AH=()=>INIT?{"x-init-data":INIT}:{"x-web-token":WEB};
 const NATIVE_BACK = !!(TGW && TGW.BackButton && TGW.isVersionAtLeast && TGW.isVersionAtLeast("6.1"));
 
 const ST = [["todo","Не начат","--s0"],["work","В работе","--s1"],["review","На проверке","--s2"],["fix","Правки","--s3"],["done","Принят","--s4"]];
-const PERM_L=[["assign","Назначать и снимать с задачи"],["fix","Выдавать правки"],["status","Менять любые статусы"],["invite","Приглашать в группу"]];
+const PERM_L=[["assign","Назначать и снимать с задачи"],["fix","Выдавать правки"],["status","Менять любые статусы"],["invite","Приглашать в группу"],["del_any","Удалять любые сообщения"],["pin_any","Закреплять любые сообщения"]];
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const S = { stages:[], ss:{}, stage:null, roles:[], showAll:false, me:null, scenes:[], shots:[], members:[], project:null, chat:null, bound:false, thumbs:{}, msgs:[],
@@ -230,7 +235,7 @@ function route(){if(!S.me)return;const[v,id]=parse();
  if(NATIVE_BACK){(v==="scene"||v==="shot")?TGW.BackButton.show():TGW.BackButton.hide()}
  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.r===(v==="team"?"team":"scenes")));
  $("#ttl").textContent=v==="scene"?"Сцена":v==="shot"?"Кадр":v==="team"?"Команда":(S.project&&S.project.title)||"Noem.pipeline";
- S.curShot=v==="shot"?id:null;if(v!=="shot")$("#foot").innerHTML="";
+ S.curShot=v==="shot"?id:null;S.sel=new Set();updSel();if(v!=="shot")$("#foot").innerHTML="";
  if(v==="scene")return viewScene(id);if(v==="shot")return viewShot(id);if(v==="team")return viewTeam();viewScenes()}
 function goBack(){const[v,id]=parse();if(v==="shot"){const h=S.shots.find(x=>x.id===id);go(h?"scene-"+h.scene:"scenes")}else go("scenes")}
 $("#cfg").onclick=()=>parse()[0]==="shot"?shotSheet():appSheet();$("#back").onclick=goBack;if(NATIVE_BACK)TGW.BackButton.onClick(goBack);
@@ -259,10 +264,41 @@ function viewTeam(){const m=$("#main"),O=S.me.owner;
  m.innerHTML=`<div class="wrap"><div class="row" style="margin-bottom:10px">${has("invite")?`<button class="btn" data-act="invite">＋ Пригласить в группу</button>`:""}${O?`<button class="btn ghost" data-act="roles">Должности</button>`:""}</div>`+
  (S.members.length?teamGroups().map(([n,a])=>`<div class="h2">${esc(n)} · ${a.length}</div>`+a.map(p=>{const k=S.shots.filter(h=>(h.assignees||[]).includes(p.tg_id)),pm=(p.perms||[]).length,tag=O&&!p.is_owner?`button data-member="${p.tg_id}"`:"div",end=O&&!p.is_owner?"button":"div";
   return`<${tag} class="card"><span class="ava" style="width:34px;height:34px;margin:0;font-size:14px">${esc((p.name||"?")[0].toUpperCase())}</span><span class="grow"><div class="t">${esc(p.name)}${p.tg_id===S.me.id?" (вы)":""}</div><div class="sub">кадров: ${k.length}, готово: ${k.filter(h=>h.status==="done").length}${pm?" · прав: "+pm:""}${O&&!p.is_owner?" · изменить ›":""}</div></span></${end}>`}).join("")).join(""):`<div class="empty">Пока никого нет</div>`)+`</div>`}
-function memberSheet(p){const d=sheet(`<div class="h2" style="margin-top:0">${esc(p.name)}</div><div class="sub">Должность</div><div class="seg" id="rl">${S.roles.map(r=>`<button class="${p.role===r.name?"on":""}" data-r="${esc(r.name)}">${esc(r.name)}</button>`).join("")}</div><div class="h2">Права</div>${PERM_L.map(x=>`<label class="card" style="cursor:pointer"><input type="checkbox" value="${x[0]}" ${(p.perms||[]).includes(x[0])?"checked":""}><span class="grow">${x[1]}</span></label>`).join("")}<button class="btn" style="width:100%" id="ok">Готово</button>`);
+function memberSheet(p){const d=sheet(`<div class="h2" style="margin-top:0">${esc(p.name)}</div><div class="sub">Должность</div><div class="seg" id="rl">${S.roles.map(r=>`<button class="${p.role===r.name?"on":""}" data-r="${esc(r.name)}">${esc(r.name)}</button>`).join("")}</div><div class="h2">Права</div>${PERM_L.map(x=>`<label class="card" style="cursor:pointer"><input type="checkbox" value="${x[0]}" ${(p.perms||[]).includes(x[0])?"checked":""}><span class="grow">${x[1]}</span></label>`).join("")}<button class="btn ghost" style="width:100%;margin-bottom:10px" id="bs">Назначить на сцены…</button><button class="btn" style="width:100%" id="ok">Готово</button>`);
+ d.querySelector("#bs").onclick=()=>{d.remove();scenesAssignSheet(p)};
  let role=p.role||null;
  d.querySelector("#rl").onclick=e=>{const r=e.target.dataset&&e.target.dataset.r;if(!r)return;role=r;d.querySelectorAll("#rl button").forEach(b=>b.classList.toggle("on",b.dataset.r===r))};
  d.querySelector("#ok").onclick=async()=>{const perms=[...d.querySelectorAll("input:checked")].map(i=>i.value);d.remove();try{await call("set_member",{id:p.tg_id,role,perms});p.role=role;p.perms=perms;route()}catch(e){toast(errText(e))}}}
+S.sel=new Set();let selOn=false,lpT=null,lpAt=0;
+const msgOf=id=>S.msgs.find(m=>m.id===id);
+const canPinMsg=()=>{const h=S.shots.find(x=>x.id===S.curShot);return !!h&&(canEdit(h)||has("pin_any"))};
+const canDelMsg=x=>S.me.owner||has("del_any")||x.by_id===S.me.id;
+function updSel(){const n=S.sel.size,v=parse()[0],hx=$("#hx"),hp=$("#hpin"),hd=$("#hdel");if(!hx)return;
+ const ms=[...S.sel].map(msgOf).filter(Boolean),pin=n&&canPinMsg(),del=n&&ms.some(canDelMsg);
+ hx.hidden=!n;hp.hidden=!pin;hd.hidden=!del;
+ if(n){selOn=true;$("#back").hidden=true;$("#cfg").hidden=true;$("#ttl").textContent="Выбрано: "+n;hp.title=ms.every(x=>x.pinned)?"Открепить":"Закрепить"}
+ else if(selOn){selOn=false;$("#back").hidden=NATIVE_BACK||!(v==="scene"||v==="shot");$("#cfg").hidden=!(v==="shot"||S.me.owner);const h=S.shots.find(x=>x.id===S.curShot);if(v==="shot"&&h)$("#ttl").textContent="Кадр "+h.num}
+ document.querySelectorAll("[data-mid]").forEach(e=>e.classList.toggle("sel",S.sel.has(+e.dataset.mid)))}
+function selToggle(id,only){if(only==="add")S.sel.add(id);else S.sel.has(id)?S.sel.delete(id):S.sel.add(id);updSel()}
+async function bulkOp(kind){const ms=[...S.sel].map(msgOf).filter(Boolean);if(!ms.length)return;
+ try{if(kind==="pin"){const pin=!ms.every(x=>x.pinned);for(const x of ms.filter(x=>!!x.pinned!==pin)){await call("pin",{id:x.id,pinned:pin});x.pinned=pin}}
+  else{const a=ms.filter(canDelMsg);if(!a.length)return;if(!await askYes(`Удалить сообщений: ${a.length}?\nВ топике Telegram они останутся.`))return;
+   for(const x of a){await call("del_msg",{id:x.id});x.deleted=true;x.pinned=false}}
+ }catch(e){toast(errText(e))}
+ S.sel=new Set();updSel();renderChat();pollOnce(true)}
+$("#hx").onclick=()=>{S.sel=new Set();updSel()};$("#hpin").onclick=()=>bulkOp("pin");$("#hdel").onclick=()=>bulkOp("del");
+(()=>{const ch=$("#main");
+ ch.addEventListener("contextmenu",e=>{const m=e.target.closest("[data-mid]");if(!m)return;e.preventDefault();if(Date.now()-lpAt<900)return;selToggle(+m.dataset.mid)});
+ ch.addEventListener("touchstart",e=>{const m=e.target.closest("[data-mid]");if(!m||e.touches.length>1)return;const id=+m.dataset.mid;clearTimeout(lpT);lpT=setTimeout(()=>{lpAt=Date.now();selToggle(id,"add");navigator.vibrate&&navigator.vibrate(15)},450)},{passive:true});
+ ["touchmove","touchend","touchcancel"].forEach(ev=>ch.addEventListener(ev,()=>clearTimeout(lpT),{passive:true}));
+ ch.addEventListener("click",e=>{const m=e.target.closest("[data-mid]");if(!m)return;if(Date.now()-lpAt<900){e.stopPropagation();e.preventDefault();return}
+  if(S.sel.size){e.stopPropagation();e.preventDefault();selToggle(+m.dataset.mid)}},true)})();
+function scenesAssignSheet(p){const sc=[...S.scenes].sort((a,b)=>(a.ord||0)-(b.ord||0));
+ const d=sheet(`<div class="h2" style="margin-top:0">${esc(p.name)}: сцены</div><div class="sub" style="display:block">Отметьте сцены: человек будет назначен (или снят) на все кадры этих сцен.</div><label class="card" style="cursor:pointer"><input type="checkbox" id="all"><span class="grow t">Выбрать все</span></label><div style="max-height:45vh;overflow:auto">${sc.map(s=>{const k=S.shots.filter(h=>h.scene===s.id),n=k.filter(h=>(h.assignees||[]).includes(p.tg_id)).length;return`<label class="card" style="cursor:pointer"><input type="checkbox" value="${esc(s.id)}"><span class="grow"><div class="t" style="white-space:normal">${esc((s.num?s.num+". ":"")+(s.title||""))}</div><div class="sub">кадров: ${k.length}${n?`, назначен на ${n}`:""}</div></span></label>`}).join("")}</div><div class="row" style="margin-top:12px"><button class="btn" id="ad">Назначить</button><button class="btn ghost" id="rm">Снять</button></div>`);
+ d.querySelector("#all").onchange=e=>d.querySelectorAll("input[value]").forEach(i=>i.checked=e.target.checked);
+ const run=async mode=>{const ids=[...d.querySelectorAll("input[value]:checked")].map(i=>i.value);if(!ids.length)return toast("Выберите сцены");
+  try{const r=await call("assign_bulk",{member:p.tg_id,scenes:ids,mode});d.remove();toast("Изменено кадров: "+(r.changed||0));await pollOnce(true);route()}catch(e){toast(errText(e))}};
+ d.querySelector("#ad").onclick=()=>run("add");d.querySelector("#rm").onclick=()=>run("remove")}
 async function msgOp(a,id,extra,patch){try{await call(a,{id,...extra});const x=S.msgs.find(m=>m.id===id);if(x)Object.assign(x,patch);renderChat();pollOnce(true)}catch(e){toast(errText(e))}}
 function stagesSheet(){const d=sheet("");const after=()=>{if(parse()[0]==="shot"){headSig="";paintHead(true);renderChat()}};
  const draw=()=>{d.firstChild.innerHTML=`<div class="h2" style="margin-top:0">Этапы работы над кадром</div><p class="sub" style="-webkit-line-clamp:unset;margin-bottom:8px">Общие для всех кадров. У каждого этапа свои статус, процент и чат в приложении.</p>${S.stages.map(s=>`<div class="card"><span class="grow t">${esc(s.name)}</span><button class="ib" data-ren="${s.id}">✎</button><button class="ib" data-sd="${s.id}">✕</button></div>`).join("")}<div class="row"><input id="sn2" placeholder="Новый этап, например «Раскадровка»" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)"><button class="btn" id="sa">＋</button></div>`;
@@ -325,15 +361,15 @@ async function sendMsg(){if(S.busy)return;const t=$("#tx").value.trim(),f=S.pend
   mergeMsgs([r.msg]);$("#tx").value="";growTx();S.pendingFile=null;S.asFile=false;S.fixMode=false;if($("#fx"))$("#fx").style.borderColor="";modeLine();renderChat(true);pollOnce(true)
  }catch(e){toast("Не отправлено: "+errText(e))}
  S.busy=false;const b=$("#sn");if(b)b.disabled=false}
-function renderChat(forceStick){const c=$("#chat");if(!c)return;const main=$("#main"),stick=forceStick||main.scrollHeight-main.scrollTop-main.clientHeight<200;
- const sh=S.shots.find(x=>x.id===S.curShot),O=S.me.owner,ce=!!sh&&canEdit(sh);let v=0;const vn={};
+function renderChat(forceStick){const c=$("#chat");if(!c)return;const main=$("#main"),stick=forceStick||(main.scrollTop>0&&main.scrollHeight-main.scrollTop-main.clientHeight<200);
+ const sh=S.shots.find(x=>x.id===S.curShot);let v=0;const vn={};
  const live=S.msgs.filter(x=>!x.deleted);live.forEach(x=>{if(x.kind==="version")vn[x.id]=++v});
- const list=live.filter(x=>!S.stage||msgStage(x)===S.stage);
+ const list=live.filter(x=>!S.stage||msgStage(x)===S.stage);{const ids=new Set(S.msgs.filter(x=>!x.deleted).map(x=>x.id));let ch=false;S.sel.forEach(i=>{if(!ids.has(i)){S.sel.delete(i);ch=true}});if(ch)setTimeout(updSel,0)}
  c.innerHTML=list.length?list.map(x=>{const mine=x.by_id===S.me.id;
   const tg=x.kind==="version"?`<span class="tag">v${vn[x.id]}</span>`:x.kind==="fix"?`<span class="tag ${x.done?"done":"fix"}" data-fx="${x.id}">${x.done?"исправлено":"правка"}</span>`:"";
-  const ac=(ce||O)?`<div class="acts">${ce?`<button data-pin="${x.id}" data-v="${x.pinned?0:1}">${x.pinned?"📌 открепить":"📌 закрепить"}</button>`:""}${O?`<button data-delmsg="${x.id}">🗑 удалить</button>`:""}</div>`:"";
-  return`<div class="msg${mine?" me":""}"><div class="who">${esc(x.by_name||"Участник")} · ${new Date(x.ts).toLocaleString("ru",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>${tg}${mediaHtml(x,sh)}${esc(x.text)}${ac}</div>`}).join(""):`<div class="sub">Сообщений пока нет. Пишите здесь или прямо в топике в Telegram: всё попадёт сюда.</div>`;
- const pn=$("#pn");if(pn){const ps=list.filter(x=>x.pinned);pn.innerHTML=ps.length?`<div class="h2">📌 Закреплено</div>`+ps.map(x=>`<div class="msg" style="max-width:100%;border-left:3px solid var(--acc)"><div class="who">${esc(x.by_name||"Участник")}</div>${x.file_id?`<div class="sub">📎 ${esc(x.file_name||"файл")}</div>`:""}${x.text?`<div class="sub" style="-webkit-line-clamp:4;color:var(--ink)">${esc(x.text)}</div>`:""}${ce?`<div class="acts"><button data-pin="${x.id}" data-v="0">открепить</button></div>`:""}</div>`).join(""):""}
+  const ac="";
+  return`<div class="msg${mine?" me":""}${S.sel.has(x.id)?" sel":""}" data-mid="${x.id}"><div class="who">${esc(x.by_name||"Участник")} · ${new Date(x.ts).toLocaleString("ru",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>${tg}${mediaHtml(x,sh)}${esc(x.text)}${ac}</div>`}).join(""):`<div class="sub">Сообщений пока нет. Пишите здесь или прямо в топике в Telegram: всё попадёт сюда.</div>`;
+ const pn=$("#pn");if(pn){const ps=list.filter(x=>x.pinned);pn.innerHTML=ps.length?`<div class="h2">📌 Закреплено</div>`+ps.map(x=>`<div class="msg${S.sel.has(x.id)?" sel":""}" data-mid="${x.id}" style="max-width:100%;border-left:3px solid var(--acc)"><div class="who">${esc(x.by_name||"Участник")}</div>${x.file_id?`<div class="sub">📎 ${esc(x.file_name||"файл")}</div>`:""}${x.text?`<div class="sub" style="-webkit-line-clamp:4;color:var(--ink)">${esc(x.text)}</div>`:""}</div>`).join(""):""}
  const lv=$("#lv");if(lv){const vs=list.filter(x=>x.kind==="version"&&x.file_id),last=vs[vs.length-1];lv.innerHTML=last?`<div class="h2">Последний вариант · v${vn[last.id]}</div><div class="msg" style="max-width:100%">${mediaHtml(last,sh)}</div>`:""}
  document.querySelectorAll("#lv img[data-fid], #chat img[data-fid]").forEach(im=>fileBlob(im.dataset.fid).then(u=>{im.src=u}).catch(()=>{im.replaceWith(Object.assign(document.createElement("div"),{className:"sub",textContent:"Превью недоступно"}))}));
  if(stick)main.scrollTop=main.scrollHeight}
@@ -370,9 +406,7 @@ const openTg=u=>TGW&&TGW.openTelegramLink?TGW.openTelegramLink(u):open(u);
 $("#main").onclick=e=>{const t=e.target;
  if(t.dataset&&t.dataset.showall!==undefined){S.showAll=t.checked;return route()}
  const mb=t.closest("[data-member]");if(mb){const p=mm(+mb.dataset.member);if(p)memberSheet(p);return}
- const sb=t.closest("[data-stage]");if(sb){S.stage=+sb.dataset.stage;headSig="";paintHead(true);renderChat(true);return}
- const pb=t.closest("[data-pin]");if(pb)return msgOp("pin",+pb.dataset.pin,{pinned:pb.dataset.v==="1"},{pinned:pb.dataset.v==="1"});
- const dm=t.closest("[data-delmsg]");if(dm)return askYes("Удалить сообщение в приложении?\nВ топике Telegram оно останется.").then(y=>y&&msgOp("del_msg",+dm.dataset.delmsg,{},{deleted:true,pinned:false}));
+ const sb=t.closest("[data-stage]");if(sb){const mn=$("#main"),y=mn.scrollTop;S.stage=+sb.dataset.stage;S.sel=new Set();updSel();headSig="";paintHead(true);renderChat(false);mn.scrollTop=y;return}
  const g=t.closest("[data-go]");if(g)return go(g.dataset.go);
  const st=t.closest("[data-st]");if(st&&!st.disabled){const h=S.shots.find(x=>x.id===S.curShot);const k=st.dataset.st;return setShot(h,{status:k,...(k==="done"?{progress:100}:{})})}
  const a=t.closest("[data-act]");if(a){const h=S.shots.find(x=>x.id===S.curShot),k=a.dataset.act;
