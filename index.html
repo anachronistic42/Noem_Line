@@ -98,7 +98,7 @@ const ST = [["todo","Не начат","--s0"],["work","В работе","--s1"],
 const PERM_L=[["assign","Назначать и снимать с задачи"],["fix","Выдавать правки"],["status","Менять любые статусы"],["invite","Приглашать в группу"]];
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const S = { roles:[], showAll:false, me:null, scenes:[], shots:[], members:[], project:null, chat:null, bound:false, thumbs:{}, msgs:[],
+const S = { stages:[], ss:{}, stage:null, roles:[], showAll:false, me:null, scenes:[], shots:[], members:[], project:null, chat:null, bound:false, thumbs:{}, msgs:[],
   sinceShots:0, sinceMsgs:0, curShot:null, pendingFile:null, asFile:false, fixMode:false, busy:false };
 const stOf = k => ST.find(s => s[0] === k) || ST[0];
 const fmtSize = n => !n ? "" : n < 1048576 ? Math.round(n/1024) + " КБ" : (n/1048576).toFixed(n < 10485760 ? 1 : 0) + " МБ";
@@ -135,6 +135,9 @@ const seeAll=()=>S.me.owner||S.me.role==="Продюсер"||S.showAll;
 const mine=h=>(h.assignees||[]).includes(S.me.id);
 const vis=()=>seeAll()?S.shots:S.shots.filter(mine);
 const canEdit=h=>S.me.owner||mine(h)||has("status");
+const fixStage=()=>{if(!S.stages.some(s=>s.id===S.stage))S.stage=S.stages[0]?S.stages[0].id:null};
+const stOfShot=h=>S.stage?(S.ss[S.stage]||(S.stage===h.cur_stage?{status:h.status||"todo",progress:h.progress||0}:{status:"todo",progress:0})):{status:h.status||"todo",progress:h.progress||0};
+const msgStage=x=>S.stages.some(s=>s.id===x.stage_id)?x.stage_id:(S.stages[0]?S.stages[0].id:null);
 const showToggle=()=>S.me.owner||S.me.role==="Продюсер"?"":`<label class="note" style="display:block"><input type="checkbox" data-showall ${S.showAll?"checked":""}> Показать задачи, на которые вы не назначены</label>`;
 function sceneAgg(id){const a=shotsOf(id);if(!a.length)return{pct:0,st:"todo",n:0};
  const pct=Math.round(a.reduce((s,h)=>s+(h.progress||0),0)/a.length),k=a.map(h=>h.status||"todo"),has=x=>k.includes(x);
@@ -233,6 +236,12 @@ function memberSheet(p){const d=sheet(`<div class="h2" style="margin-top:0">${es
  let role=p.role||null;
  d.querySelector("#rl").onclick=e=>{const r=e.target.dataset&&e.target.dataset.r;if(!r)return;role=r;d.querySelectorAll("#rl button").forEach(b=>b.classList.toggle("on",b.dataset.r===r))};
  d.querySelector("#ok").onclick=async()=>{const perms=[...d.querySelectorAll("input:checked")].map(i=>i.value);d.remove();try{await call("set_member",{id:p.tg_id,role,perms});p.role=role;p.perms=perms;route()}catch(e){toast(errText(e))}}}
+async function msgOp(a,id,extra,patch){try{await call(a,{id,...extra});const x=S.msgs.find(m=>m.id===id);if(x)Object.assign(x,patch);renderChat();pollOnce(true)}catch(e){toast(errText(e))}}
+function stagesSheet(){const d=sheet("");const after=()=>{if(parse()[0]==="shot"){headSig="";paintHead(true);renderChat()}};
+ const draw=()=>{d.firstChild.innerHTML=`<div class="h2" style="margin-top:0">Этапы работы над кадром</div><p class="sub" style="-webkit-line-clamp:unset;margin-bottom:8px">Общие для всех кадров. У каждого этапа свои статус, процент и чат в приложении.</p>${S.stages.map(s=>`<div class="card"><span class="grow t">${esc(s.name)}</span><button class="ib" data-ren="${s.id}">✎</button><button class="ib" data-sd="${s.id}">✕</button></div>`).join("")}<div class="row"><input id="sn2" placeholder="Новый этап, например «Раскадровка»" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)"><button class="btn" id="sa">＋</button></div>`;
+  d.querySelector("#sa").onclick=async()=>{const n=d.querySelector("#sn2").value.trim();if(!n)return;try{const r=await call("add_stage",{name:n});S.stages.push(r.stage);fixStage();draw();after()}catch(e){toast(errText(e))}};
+  d.querySelectorAll("[data-ren]").forEach(b=>b.onclick=async()=>{const s=S.stages.find(x=>x.id===+b.dataset.ren),n=await askText("Название этапа");if(!n||!n.trim())return;try{await call("rename_stage",{id:s.id,name:n.trim()});s.name=n.trim();draw();after()}catch(e){toast(errText(e))}});
+  d.querySelectorAll("[data-sd]").forEach(b=>b.onclick=async()=>{const id=+b.dataset.sd,s=S.stages.find(x=>x.id===id);if(!await askYes("Удалить этап «"+s.name+"»? Статусы и проценты этого этапа пропадут, сообщения останутся в первом этапе."))return;try{await call("del_stage",{id});S.stages=S.stages.filter(x=>x.id!==id);delete S.ss[id];fixStage();draw();after()}catch(e){toast(errText(e))}})};draw()}
 function rolesSheet(){const d=sheet("");const draw=()=>{d.firstChild.innerHTML=`<div class="h2" style="margin-top:0">Должности</div>${S.roles.map(r=>`<div class="card"><span class="grow t">${esc(r.name)}${r.pickable?"":' <span class="sub">(назначает только режиссёр)</span>'}</span>${r.name==="Продюсер"?"":`<button class="ib" data-del="${esc(r.name)}">✕</button>`}</div>`).join("")}<div class="row"><input id="rn" placeholder="Новая должность" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)"><button class="btn" id="ra">＋</button></div>`;
  if(parse()[0]==="team")viewTeam();
  d.querySelector("#ra").onclick=async()=>{const n=d.querySelector("#rn").value.trim();if(!n)return;try{await call("add_role",{name:n});if(!S.roles.some(r=>r.name===n))S.roles.push({name:n,pickable:true});draw()}catch(e){toast(errText(e))}};
@@ -240,8 +249,8 @@ function rolesSheet(){const d=sheet("");const draw=()=>{d.firstChild.innerHTML=`
 
 function viewShot(id){const h=S.shots.find(x=>x.id===id),m=$("#main");if(!h){m.innerHTML=`<div class="empty">Кадр не найден</div>`;return}
  $("#ttl").textContent="Кадр "+h.num;
- m.innerHTML=`<div class="wrap"><div id="hd"></div><div id="lv"></div><div class="h2">Чат кадра</div><div id="chat"></div></div>`;
- headSig="";paintHead(true);
+ m.innerHTML=`<div class="wrap"><div id="hd"></div><div id="lv"></div><div id="pn"></div><div class="h2">Чат кадра</div><div id="chat"></div></div>`;
+ S.ss={};{const cs=S.stages.find(s=>s.id===h.cur_stage)||S.stages[0];S.stage=cs?cs.id:null}headSig="";paintHead(true);
  $("#foot").innerHTML=`<div class="mode" id="md"></div><div class="comp"><button class="ib" id="at" title="Файл или версия">📎</button>${has("fix")?`<button class="ib" id="fx" title="Правка">✎</button>`:""}<textarea id="tx" rows="1" placeholder="Сообщение…"></textarea><button class="btn" id="sn">➤</button></div>`;
  if(!canEdit(h))$("#foot").innerHTML=`<div class="mode" style="padding-bottom:10px">Вы не назначены на этот кадр: писать в чат и менять статус могут исполнители, режиссёр и те, у кого есть права.</div>`;
  S.pendingFile=null;S.asFile=false;S.fixMode=false;S.msgs=[];S.sinceMsgs=0;modeLine();renderChat();
@@ -251,15 +260,16 @@ function viewShot(id){const h=S.shots.find(x=>x.id===id),m=$("#main");if(!h){m.i
  pollOnce(true)}
 let headSig="";
 function paintHead(force){const h=S.shots.find(x=>x.id===S.curShot),hd=$("#hd");if(!h||!hd)return;
- const sig=JSON.stringify([h.status,h.progress,h.assignees,h.topic_id,h.action,S.members.length]);if(!force&&sig===headSig)return;headSig=sig;
- const ed=canEdit(h),cl=ed?"":" disabled";
+ const sig=JSON.stringify([st,S.stage,S.stages,h.assignees,h.topic_id,h.action,S.members.length]);if(!force&&sig===headSig)return;headSig=sig;
+ const ed=canEdit(h),cl=ed?"":" disabled",st=stOfShot(h);
+ const sr=(S.stages.length||S.me.owner)?`<div class="seg" style="margin-top:10px">${S.stages.map(s=>`<button class="${s.id===S.stage?"on":""}" data-stage="${s.id}">${esc(s.name)}</button>`).join("")}${S.me.owner?`<button data-act="stages">⚙ Этапы</button>`:""}</div>`:"";
  hd.innerHTML=`<div class="row" style="align-items:flex-start"><span class="th" data-th="${h.id}" style="width:120px;height:74px"></span><span class="grow"><div class="sub" style="-webkit-line-clamp:4">${esc(h.action||"Без описания")}</div><div class="sub">${[h.scale,h.montage,h.tc&&("хрон "+h.tc)].filter(Boolean).map(esc).join(" · ")}</div>${h.sound?`<div class="sub">♪ ${esc(h.sound)}</div>`:""}</span></div>
  <div class="row" style="margin-top:8px">${h.topic_id?`<button class="chip" data-act="topic" style="--c:var(--acc)">↗ Открыть топик в Telegram</button>`:`<span class="sub">Топик создастся при первом сообщении</span>`}</div>
- <div class="h2">Статус</div><div class="seg">${ST.map(s=>`<button class="${h.status===s[0]?"on":""}" style="--c:var(${s[2]})" data-st="${s[0]}"${cl}>${s[1]}</button>`).join("")}</div>
- <div class="h2">Выполнено: <span id="pv">${h.progress||0}</span>%</div><input type="range" min="0" max="100" step="5" value="${h.progress||0}" id="pr"${cl}>
+ ${sr}<div class="h2">Статус</div><div class="seg">${ST.map(s=>`<button class="${st.status===s[0]?"on":""}" style="--c:var(${s[2]})" data-st="${s[0]}"${cl}>${s[1]}</button>`).join("")}</div>
+ <div class="h2">Выполнено: <span id="pv">${st.progress}</span>%</div><input type="range" min="0" max="100" step="5" value="${st.progress}" id="pr"${cl}>
  <div class="h2">Исполнители</div><div class="seg">${(h.assignees||[]).map(a=>`<span class="chip" style="--c:var(--acc)">${esc(nm(a))} · ${esc((mm(a)&&mm(a).role)||"")}</span>`).join("")||`<span class="sub">никого</span>`}${has("assign")?`<button class="chip" data-act="assign" style="--c:var(--acc)">＋ назначить</button>`:""}</div>`;
  const pr=$("#pr");pr.oninput=()=>$("#pv").textContent=pr.value;
- pr.onchange=()=>{const v=+pr.value;setShot(h,{progress:v,...(v===100?{status:"done"}:(h.status==="todo"&&v>0?{status:"work"}:{}))})};
+ pr.onchange=()=>{const v=+pr.value;setShot(h,{progress:v,...(v===100?{status:"done"}:(st.status==="todo"&&v>0?{status:"work"}:{}))})};
  paintThumbs();ensureThumbs([h.id])}
 function modeLine(){const e=$("#md");if(!e)return;const f=S.pendingFile;
  e.innerHTML=(S.fixMode?"Режим: правка":"")+(f?` <span>Файл: ${esc(f.name)} (${fmtSize(f.size)})</span>${/^image\//.test(f.type)?`<button data-act="asfile">${S.asFile?"✓ без сжатия":"без сжатия"}</button>`:""}<button data-act="dropfile">убрать</button>`:"")}
@@ -267,18 +277,22 @@ $("#pic").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
  if(f.size>50*1024*1024){toast(ERR.too_big);return}S.pendingFile=f;S.asFile=false;modeLine()};
 async function sendMsg(){if(S.busy)return;const t=$("#tx").value.trim(),f=S.pendingFile;if(!t&&!f)return;
  const kind=f?(S.fixMode?"fix":"version"):S.fixMode?"fix":"text";S.busy=true;$("#sn").disabled=true;if(f)toast("Отправка файла…");
- try{const fd=new FormData();fd.append("action","post");fd.append("shot_id",S.curShot);fd.append("text",t);fd.append("kind",kind);if(S.asFile)fd.append("asfile","1");if(f)fd.append("file",f,f.name);
+ try{const fd=new FormData();fd.append("action","post");fd.append("shot_id",S.curShot);fd.append("text",t);fd.append("kind",kind);if(S.stage)fd.append("stage_id",S.stage);if(S.asFile)fd.append("asfile","1");if(f)fd.append("file",f,f.name);
   const r=await handle(await fetch(API,{method:"POST",headers:AH(),body:fd}));
   mergeMsgs([r.msg]);$("#tx").value="";S.pendingFile=null;S.asFile=false;S.fixMode=false;if($("#fx"))$("#fx").style.borderColor="";modeLine();renderChat(true);pollOnce(true)
  }catch(e){toast("Не отправлено: "+errText(e))}
  S.busy=false;const b=$("#sn");if(b)b.disabled=false}
-function renderChat(forceStick){const c=$("#chat");if(!c)return;let v=0;const main=$("#main"),stick=forceStick||main.scrollHeight-main.scrollTop-main.clientHeight<200;
- const sh=S.shots.find(x=>x.id===S.curShot);
- c.innerHTML=S.msgs.length?S.msgs.map(x=>{const mine=x.by_id===S.me.id;if(x.kind==="version")v++;
-  const tg=x.kind==="version"?`<span class="tag">v${v}</span>`:x.kind==="fix"?`<span class="tag ${x.done?"done":"fix"}" data-fx="${x.id}">${x.done?"исправлено":"правка"}</span>`:"";
-  return`<div class="msg${mine?" me":""}"><div class="who">${esc(x.by_name||"Участник")} · ${new Date(x.ts).toLocaleString("ru",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>${tg}${mediaHtml(x,sh)}${esc(x.text)}</div>`}).join(""):`<div class="sub">Сообщений пока нет. Пишите здесь или прямо в топике в Telegram: всё попадёт сюда.</div>`;
- const lv=$("#lv");if(lv){const vs=S.msgs.filter(x=>x.kind==="version"),last=[...vs].reverse().find(x=>x.file_id);lv.innerHTML=last?`<div class="h2">Последний вариант · v${vs.indexOf(last)+1}</div><div class="msg" style="max-width:100%">${mediaHtml(last,sh)}</div>`:""}
-  document.querySelectorAll("#lv img[data-fid], #chat img[data-fid]").forEach(im=>fileBlob(im.dataset.fid).then(u=>{im.src=u}).catch(()=>{im.replaceWith(Object.assign(document.createElement("div"),{className:"sub",textContent:"Превью недоступно"}))}));
+function renderChat(forceStick){const c=$("#chat");if(!c)return;const main=$("#main"),stick=forceStick||main.scrollHeight-main.scrollTop-main.clientHeight<200;
+ const sh=S.shots.find(x=>x.id===S.curShot),O=S.me.owner,ce=!!sh&&canEdit(sh);let v=0;const vn={};
+ const live=S.msgs.filter(x=>!x.deleted);live.forEach(x=>{if(x.kind==="version")vn[x.id]=++v});
+ const list=live.filter(x=>!S.stage||msgStage(x)===S.stage);
+ c.innerHTML=list.length?list.map(x=>{const mine=x.by_id===S.me.id;
+  const tg=x.kind==="version"?`<span class="tag">v${vn[x.id]}</span>`:x.kind==="fix"?`<span class="tag ${x.done?"done":"fix"}" data-fx="${x.id}">${x.done?"исправлено":"правка"}</span>`:"";
+  const ac=(ce||O)?`<div class="acts">${ce?`<button data-pin="${x.id}" data-v="${x.pinned?0:1}">${x.pinned?"📌 открепить":"📌 закрепить"}</button>`:""}${O?`<button data-delmsg="${x.id}">🗑 удалить</button>`:""}</div>`:"";
+  return`<div class="msg${mine?" me":""}"><div class="who">${esc(x.by_name||"Участник")} · ${new Date(x.ts).toLocaleString("ru",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>${tg}${mediaHtml(x,sh)}${esc(x.text)}${ac}</div>`}).join(""):`<div class="sub">Сообщений пока нет. Пишите здесь или прямо в топике в Telegram: всё попадёт сюда.</div>`;
+ const pn=$("#pn");if(pn){const ps=list.filter(x=>x.pinned);pn.innerHTML=ps.length?`<div class="h2">📌 Закреплено</div>`+ps.map(x=>`<div class="msg" style="max-width:100%;border-left:3px solid var(--acc)"><div class="who">${esc(x.by_name||"Участник")}</div>${x.file_id?`<div class="sub">📎 ${esc(x.file_name||"файл")}</div>`:""}${x.text?`<div class="sub" style="-webkit-line-clamp:4;color:var(--ink)">${esc(x.text)}</div>`:""}${ce?`<div class="acts"><button data-pin="${x.id}" data-v="0">открепить</button></div>`:""}</div>`).join(""):""}
+ const lv=$("#lv");if(lv){const vs=list.filter(x=>x.kind==="version"&&x.file_id),last=vs[vs.length-1];lv.innerHTML=last?`<div class="h2">Последний вариант · v${vn[last.id]}</div><div class="msg" style="max-width:100%">${mediaHtml(last,sh)}</div>`:""}
+ document.querySelectorAll("#lv img[data-fid], #chat img[data-fid]").forEach(im=>fileBlob(im.dataset.fid).then(u=>{im.src=u}).catch(()=>{im.replaceWith(Object.assign(document.createElement("div"),{className:"sub",textContent:"Превью недоступно"}))}));
  if(stick)main.scrollTop=main.scrollHeight}
 function mediaHtml(x,sh){if(!x.file_id)return"";
  const link=sh&&sh.topic_id&&x.tg_msg_id?`<button data-open="${x.tg_msg_id}">↗ в Telegram</button>`:"";
@@ -288,9 +302,10 @@ function mediaHtml(x,sh){if(!x.file_id)return"";
  return`<div class="file"><div class="fn">${ic} ${esc(x.file_name||"файл")}</div><div class="sub">${fmtSize(x.file_size)}</div><div class="acts">${link}<button data-tome="${x.id}">📥 в личку</button></div></div>`}
 
 async function setShot(h,p,quiet){
- h=S.shots.find(x=>x.id===h.id)||h;const prev={...h};Object.assign(h,p);paintHead(true);
- try{const r=await call("set_shot",{id:h.id,...p});const i=S.shots.findIndex(x=>x.id===h.id);if(i>=0)S.shots[i]=r.shot;S.sinceShots=maxU([r.shot],S.sinceShots);if(S.curShot===h.id)paintHead(true)}
- catch(e){Object.assign(h,prev);if(S.curShot===h.id)paintHead(true);if(!quiet)toast(errText(e))}}
+ h=S.shots.find(x=>x.id===h.id)||h;const prev={...h},pss=JSON.stringify(S.ss),sid=S.stage,sg=sid&&(p.status!==undefined||p.progress!==undefined);
+ if(sg){const o=stOfShot(h),n={status:p.status??o.status,progress:p.progress??o.progress};S.ss[sid]=n;Object.assign(h,n,{cur_stage:sid})}else Object.assign(h,p);paintHead(true);
+ try{const r=await call("set_shot",{id:h.id,...p,...(sg?{stage_id:sid}:{})});const i=S.shots.findIndex(x=>x.id===h.id);if(i>=0)S.shots[i]=r.shot;S.sinceShots=maxU([r.shot],S.sinceShots);if(S.curShot===h.id)paintHead(true)}
+ catch(e){Object.assign(h,prev);S.ss=JSON.parse(pss);if(S.curShot===h.id)paintHead(true);if(!quiet)toast(errText(e))}}
 function askText(title,pass){return new Promise(res=>{const d=sheet(`<div class="h2" style="margin-top:0">${esc(title)}</div><input id="ai" ${pass?'type="password"':""} style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)"><div class="row" style="margin-top:12px"><button class="btn" id="aok">OK</button><button class="btn ghost" id="ano">Отмена</button></div>`);let done=false;const fin=v=>{if(done)return;done=true;d.remove();res(v)};
  d.querySelector("#aok").onclick=()=>fin(d.querySelector("#ai").value);d.querySelector("#ano").onclick=()=>fin(null);d.addEventListener("click",e=>{if(e.target===d)fin(null)});setTimeout(()=>d.querySelector("#ai").focus(),50)})}
 function askYes(text){return new Promise(res=>{const d=sheet(`<p style="white-space:pre-wrap">${esc(text)}</p><div class="row" style="margin-top:12px"><button class="btn" id="y">Да</button><button class="btn ghost" id="n">Нет</button></div>`);let done=false;const fin=v=>{if(done)return;done=true;d.remove();res(v)};
@@ -312,10 +327,13 @@ const openTg=u=>TGW&&TGW.openTelegramLink?TGW.openTelegramLink(u):open(u);
 $("#main").onclick=e=>{const t=e.target;
  if(t.dataset&&t.dataset.showall!==undefined){S.showAll=t.checked;return route()}
  const mb=t.closest("[data-member]");if(mb){const p=mm(+mb.dataset.member);if(p)memberSheet(p);return}
+ const sb=t.closest("[data-stage]");if(sb){S.stage=+sb.dataset.stage;headSig="";paintHead(true);renderChat(true);return}
+ const pb=t.closest("[data-pin]");if(pb)return msgOp("pin",+pb.dataset.pin,{pinned:pb.dataset.v==="1"},{pinned:pb.dataset.v==="1"});
+ const dm=t.closest("[data-delmsg]");if(dm)return askYes("Удалить сообщение в приложении?\nВ топике Telegram оно останется.").then(y=>y&&msgOp("del_msg",+dm.dataset.delmsg,{},{deleted:true,pinned:false}));
  const g=t.closest("[data-go]");if(g)return go(g.dataset.go);
  const st=t.closest("[data-st]");if(st&&!st.disabled){const h=S.shots.find(x=>x.id===S.curShot);const k=st.dataset.st;return setShot(h,{status:k,...(k==="done"?{progress:100}:{})})}
  const a=t.closest("[data-act]");if(a){const h=S.shots.find(x=>x.id===S.curShot),k=a.dataset.act;
-  if(k==="roles")return rolesSheet();if(k==="assign")return assignSheet(h);if(k==="topics")return topicsSheet();if(k==="invite")return inviteFlow();
+  if(k==="roles")return rolesSheet();if(k==="stages")return stagesSheet();if(k==="assign")return assignSheet(h);if(k==="topics")return topicsSheet();if(k==="invite")return inviteFlow();
   if(k==="topic"&&h)return openTg("https://t.me/c/"+S.chat+"/"+h.topic_id)}
  const o=t.closest("[data-open]");if(o){const h=S.shots.find(x=>x.id===S.curShot);return openTg("https://t.me/c/"+S.chat+"/"+o.dataset.open+"?thread="+h.topic_id)}
  const tm=t.closest("[data-tome]");if(tm){return call("send_to_me",{id:+tm.dataset.tome}).then(()=>toast("Отправлено вам в личку от бота")).catch(e=>toast(errText(e)))}
@@ -335,9 +353,11 @@ async function pollOnce(now){if(!S.me)return;if(polling||(document.hidden&&!now)
   if(S.project&&r.project&&r.project.imported_at!==S.project.imported_at){polling=false;await boot(true);schedule();return}
   let chShots=false,chMem=false,chMsgs=false;
   if(r.roles&&JSON.stringify(r.roles)!==JSON.stringify(S.roles)){S.roles=r.roles;chMem=true}
+  if(r.stages&&JSON.stringify(r.stages)!==JSON.stringify(S.stages)){S.stages=r.stages;fixStage();chMem=true;chMsgs=true}
+  if(sid===S.curShot&&r.ss){const mp={};r.ss.forEach(x=>mp[x.stage_id]={status:x.status,progress:x.progress});if(JSON.stringify(mp)!==JSON.stringify(S.ss)){S.ss=mp;chShots=true}}
   if(r.shots.length){const before=JSON.stringify(r.shots.map(x=>S.shots.find(y=>y.id===x.id)));mergeShots(r.shots);chShots=before!==JSON.stringify(r.shots)}
   if(JSON.stringify(r.members)!==JSON.stringify(S.members)){S.members=r.members;chMem=true;const me=mm(S.me.id);if(me){S.me.role=me.role;S.me.perms=me.perms||[]}}
-  if(sid===S.curShot&&r.msgs){const n0=S.msgs.length,sig=JSON.stringify(S.msgs);mergeMsgs(r.msgs);chMsgs=sig!==JSON.stringify(S.msgs)||S.msgs.length!==n0||n0===0}
+  if(sid===S.curShot&&r.msgs){const n0=S.msgs.length,sig=JSON.stringify(S.msgs);mergeMsgs(r.msgs);chMsgs=chMsgs||sig!==JSON.stringify(S.msgs)||S.msgs.length!==n0||n0===0}
   const busy=document.querySelector(".sheet,.lb");
   if(parse()[0]==="shot"){if((chShots||chMem)&&!document.activeElement.matches?.("#pr"))paintHead(true);if(chMsgs)renderChat()}
   else if((chShots||chMem)&&!busy)route();
@@ -360,7 +380,7 @@ async function boot(again){
   if(e.code==="unbound")return fatal("Проект ещё не настроен.<br><span class=\"sub\">Режиссёр должен привязать группу командой /bind.</span>");
   if(e.code==="auth"&&!INIT){WEB="";try{localStorage.removeItem("noem_web")}catch(x){}return loginScreen()}if(e.code==="auth")return fatal("Не удалось подтвердить вход через Telegram.<br><span class=\"sub\">Закройте и откройте приложение заново.</span>");
   return fatal("Не удалось подключиться: "+esc(errText(e))+`<br><button class="btn" onclick="boot()">Повторить</button>`)}
- S.me=r.me;S.roles=r.roles||[];S.scenes=r.scenes;S.shots=r.shots;S.members=r.members;S.project=r.project;S.chat=r.chat;S.bound=r.bound;S.sinceShots=maxU(r.shots,0);
+ S.me=r.me;S.roles=r.roles||[];S.stages=r.stages||[];S.scenes=r.scenes;S.shots=r.shots;S.members=r.members;S.project=r.project;S.chat=r.chat;S.bound=r.bound;S.sinceShots=maxU(r.shots,0);
  if(!S.bound&&S.me.owner){$("#nav").hidden=false;$("#imp").hidden=false;
   $("#main").innerHTML=`<div class="wrap"><div class="note"><b>Осталось привязать группу.</b><br>Откройте вашу группу с темами и отправьте в ней команду <b>/bind</b>. Бот ответит, что группа привязана и каких прав ему не хватает. Потом нажмите «Проверить».</div><button class="btn" onclick="boot()">Проверить</button></div>`;return}
  if(!S.me.owner&&!S.me.role&&!document.querySelector(".sheet"))roleSheet();
