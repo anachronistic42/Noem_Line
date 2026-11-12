@@ -201,7 +201,7 @@ function imagesSheet(items){return new Promise(done=>{
      const r=await handle(await fetch(API,{method:"POST",headers:AH(),body:fd}));
      if(r.wait){say(`Отправлено ${n} из ${total}. Telegram просит подождать ${r.wait} с…`);await sleep((r.wait+1)*1000);continue}
      break
-    }catch(e){say("Ошибка: "+errText(e)+". Проверьте, что у бота есть право «Управление темами».");stop=true;await sleep(4000)}
+    }catch(e){say("Ошибка: "+errText(e)+". Проверьте право бота «Управление темами» и что миграции 6 и 7 выполнены.");stop=true;await sleep(4000)}
    }
    if(stop)break;n++;say(`Отправлено ${n} из ${total}`);if(document.body.contains(d))$("#tb").style.width=Math.round(n/total*100)+"%"}
   d.remove();await boot(true);toast(n>=total?"Картинки отправлены в топики":"Отправлено "+n+" из "+total+". Остальные догрузятся при повторной загрузке .noemocean");done()})()})}
