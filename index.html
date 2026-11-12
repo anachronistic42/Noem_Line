@@ -90,13 +90,15 @@ const API = "https://admbsxycsucognmoxmng.supabase.co/functions/v1/noem";
 const TGW = window.Telegram && Telegram.WebApp;
 const INIT = (TGW && TGW.initData) || "";
 if (TGW) { try { TGW.ready(); TGW.expand(); if (TGW.colorScheme) document.documentElement.dataset.theme = TGW.colorScheme; } catch (e) {} }
+const BOT_NAME="Noem_Line_bot";let WEB="";try{WEB=localStorage.getItem("noem_web")||""}catch(e){}
+const AH=()=>INIT?{"x-init-data":INIT}:{"x-web-token":WEB};
 const NATIVE_BACK = !!(TGW && TGW.BackButton && TGW.isVersionAtLeast && TGW.isVersionAtLeast("6.1"));
 
 const ST = [["todo","Не начат","--s0"],["work","В работе","--s1"],["review","На проверке","--s2"],["fix","Правки","--s3"],["done","Принят","--s4"]];
-const ROLES = ["Художник","Аниматор","Композер","Звук","Другое"];
+const PERM_L=[["assign","Назначать и снимать с задачи"],["fix","Выдавать правки"],["status","Менять любые статусы"],["invite","Приглашать в группу"]];
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const S = { me:null, scenes:[], shots:[], members:[], project:null, chat:null, bound:false, thumbs:{}, msgs:[],
+const S = { roles:[], showAll:false, me:null, scenes:[], shots:[], members:[], project:null, chat:null, bound:false, thumbs:{}, msgs:[],
   sinceShots:0, sinceMsgs:0, curShot:null, pendingFile:null, asFile:false, fixMode:false, busy:false };
 const stOf = k => ST.find(s => s[0] === k) || ST[0];
 const fmtSize = n => !n ? "" : n < 1048576 ? Math.round(n/1024) + " КБ" : (n/1048576).toFixed(n < 10485760 ? 1 : 0) + " МБ";
@@ -104,7 +106,7 @@ function toast(t){const e=document.createElement("div");e.className="toast";e.te
 
 /* ---------- сеть ---------- */
 async function call(action, data){
-  const r = await fetch(API, {method:"POST", headers:{"content-type":"application/json","x-init-data":INIT}, body:JSON.stringify({action, ...data})});
+  const r = await fetch(API, {method:"POST", headers:{"content-type":"application/json",...AH()}, body:JSON.stringify({action, ...data})});
   return handle(r);
 }
 async function handle(r){
@@ -116,7 +118,7 @@ const errText = e => ERR[e.code] || e.message || "Ошибка";
 const blobCache = new Map();
 function fileBlob(id){
   if(!blobCache.has(id)){
-    blobCache.set(id, fetch(API,{method:"POST",headers:{"content-type":"application/json","x-init-data":INIT},body:JSON.stringify({action:"file",file_id:id})})
+    blobCache.set(id, fetch(API,{method:"POST",headers:{"content-type":"application/json",...AH()},body:JSON.stringify({action:"file",file_id:id})})
       .then(async r=>{if(!r.ok){const e=await r.json().catch(()=>({}));const er=new Error(e.error||"HTTP "+r.status);er.code=e.error;throw er}return URL.createObjectURL(await r.blob())})
       .catch(e=>{blobCache.delete(id);throw e}));
   }
@@ -124,11 +126,16 @@ function fileBlob(id){
 }
 
 /* ---------- данные ---------- */
-const shotsOf = id => S.shots.filter(h => h.scene === id);
+const shotsOf = id => vis().filter(h => h.scene === id);
 const mm = id => S.members.find(m => m.tg_id === id);
 const nm = id => (mm(id) && mm(id).name) || "Участник";
 const ini = id => (nm(id)[0] || "?").toUpperCase();
-const canEdit = h => S.me.owner || (h.assignees || []).includes(S.me.id);
+const has=p=>S.me.owner||(S.me.perms||[]).includes(p);
+const seeAll=()=>S.me.owner||S.me.role==="Продюсер"||S.showAll;
+const mine=h=>(h.assignees||[]).includes(S.me.id);
+const vis=()=>seeAll()?S.shots:S.shots.filter(mine);
+const canEdit=h=>S.me.owner||mine(h)||has("status");
+const showToggle=()=>S.me.owner||S.me.role==="Продюсер"?"":`<label class="note" style="display:block"><input type="checkbox" data-showall ${S.showAll?"checked":""}> Показать задачи, на которые вы не назначены</label>`;
 function sceneAgg(id){const a=shotsOf(id);if(!a.length)return{pct:0,st:"todo",n:0};
  const pct=Math.round(a.reduce((s,h)=>s+(h.progress||0),0)/a.length),k=a.map(h=>h.status||"todo"),has=x=>k.includes(x);
  const st=k.every(x=>x==="done")?"done":k.every(x=>x==="todo")?"todo":has("fix")?"fix":has("work")?"work":has("review")?"review":"work";
@@ -206,28 +213,41 @@ const chipH=k=>{const s=stOf(k);return`<span class="chip" style="--c:var(${s[2]}
 const bar=(p,k)=>`<div class="bar"><i style="width:${p}%;--c:var(${stOf(k)[2]})"></i></div>`;
 function viewScenes(){const m=$("#main");
  if(!S.scenes.length){m.innerHTML=`<div class="empty"><div class="big">0</div><p style="margin-top:8px">Проект ещё не загружен.</p>${S.me.owner?`<button class="btn" id="e1">Загрузить .noemocean</button>`:`<p>Режиссёр пока не загрузил проект.</p>`}</div>`;const b=$("#e1");if(b)b.onclick=()=>$("#file").click();return}
- const all=S.shots.length,pct=all?Math.round(S.shots.reduce((s,h)=>s+(h.progress||0),0)/all):0,done=S.shots.filter(h=>h.status==="done").length,nt=S.shots.filter(h=>!h.topic_id).length;
- m.innerHTML=`<div class="wrap"><div class="card" style="display:block"><div class="row" style="justify-content:space-between"><span class="big">${pct}%</span><span class="sub">принято ${done} из ${all} кадров</span></div>${bar(pct,"work")}</div>`+
+ const V=vis(),all=V.length,pct=all?Math.round(V.reduce((s,h)=>s+(h.progress||0),0)/all):0,done=V.filter(h=>h.status==="done").length,nt=S.shots.filter(h=>!h.topic_id).length;
+ m.innerHTML=`<div class="wrap">${showToggle()}<div class="card" style="display:block"><div class="row" style="justify-content:space-between"><span class="big">${pct}%</span><span class="sub">принято ${done} из ${all} кадров</span></div>${bar(pct,"work")}</div>`+
  (S.me.owner&&nt&&S.bound?`<div class="note">Кадров без топика в Telegram: ${nt}. <button class="chip" data-act="topics" style="--c:var(--acc)">Создать топики</button></div>`:"")+
- [...S.scenes].sort((a,b)=>a.ord-b.ord).map(s=>{const g=sceneAgg(s.id);return`<button class="card" data-go="scene-${s.id}"><span class="num">${esc(s.num||"–")}</span><span class="grow"><div class="t">${esc(s.title)}</div><div class="row" style="margin-top:3px">${chipH(g.st)}<span class="sub">${g.n} кадр.</span><span class="pct" style="margin-left:auto">${g.pct}%</span></div>${bar(g.pct,g.st)}</span></button>`}).join("")+`</div>`}
+ (V.length||seeAll()?"":`<div class="empty">На вас пока нет назначенных кадров.</div>`)+[...S.scenes].filter(s=>S.me.owner||shotsOf(s.id).length).sort((a,b)=>a.ord-b.ord).map(s=>{const g=sceneAgg(s.id);return`<button class="card" data-go="scene-${s.id}"><span class="num">${esc(s.num||"–")}</span><span class="grow"><div class="t">${esc(s.title)}</div><div class="row" style="margin-top:3px">${chipH(g.st)}<span class="sub">${g.n} кадр.</span><span class="pct" style="margin-left:auto">${g.pct}%</span></div>${bar(g.pct,g.st)}</span></button>`}).join("")+`</div>`}
 function viewScene(id){const s=S.scenes.find(x=>x.id===id),m=$("#main");if(!s){m.innerHTML=`<div class="empty">Сцена не найдена</div>`;return}
  const g=sceneAgg(id),list=[...shotsOf(id)].sort((a,b)=>a.ord-b.ord);$("#ttl").textContent="Сцена "+(s.num||"");
- m.innerHTML=`<div class="wrap"><div class="card" style="display:block"><div class="t" style="white-space:normal">${esc(s.title)}</div>${s.info?`<div class="sub">${esc(s.info)}</div>`:""}<div class="row" style="margin-top:6px">${chipH(g.st)}<span class="pct">${g.pct}%</span></div>${bar(g.pct,g.st)}</div>`+
+ m.innerHTML=`<div class="wrap">${showToggle()}<div class="card" style="display:block"><div class="t" style="white-space:normal">${esc(s.title)}</div>${s.info?`<div class="sub">${esc(s.info)}</div>`:""}<div class="row" style="margin-top:6px">${chipH(g.st)}<span class="pct">${g.pct}%</span></div>${bar(g.pct,g.st)}</div>`+
  list.map(h=>`<button class="card" data-go="shot-${h.id}"><span class="th" data-th="${h.id}"></span><span class="grow"><div class="row"><span class="num" style="min-width:0">${esc(h.num)}</span>${chipH(h.status)}<span class="pct" style="margin-left:auto">${h.progress||0}%</span></div><div class="sub">${esc(h.action||h.scale||"—")}</div><div class="avas">${(h.assignees||[]).map(a=>`<span class="ava">${esc(ini(a))}</span>`).join("")}</div>${bar(h.progress||0,h.status)}</span></button>`).join("")+`</div>`;
  paintThumbs();ensureThumbs(list.map(h=>h.id))}
-function viewTeam(){const m=$("#main"),mem=S.members;
- m.innerHTML=`<div class="wrap">${S.me.owner?`<div class="row" style="margin-bottom:10px"><button class="btn" data-act="invite">＋ Пригласить в группу</button></div>`:""}<p class="sub" style="margin-bottom:10px;-webkit-line-clamp:unset">Участники появляются здесь, когда вступают в группу или открывают приложение.</p>`+
- (mem.length?mem.map(p=>{const n=S.shots.filter(h=>(h.assignees||[]).includes(p.tg_id));return`<div class="card"><span class="ava" style="width:34px;height:34px;margin:0;font-size:14px">${esc((p.name||"?")[0].toUpperCase())}</span><span class="grow"><div class="t">${esc(p.name)}${p.tg_id===S.me.id?" (вы)":""}</div><div class="sub">${esc(p.is_owner?"Режиссёр":(p.role||"роль не выбрана"))} · кадров: ${n.length}, готово: ${n.filter(h=>h.status==="done").length}</div></span></div>`}).join(""):`<div class="empty">Пока никого нет</div>`)+`</div>`}
+function teamGroups(){const g=[["Режиссёр",S.members.filter(p=>p.is_owner)]];
+ S.roles.forEach(r=>g.push([r.name,S.members.filter(p=>!p.is_owner&&p.role===r.name)]));
+ g.push(["Без должности",S.members.filter(p=>!p.is_owner&&!S.roles.some(r=>r.name===p.role))]);return g.filter(x=>x[1].length)}
+function viewTeam(){const m=$("#main"),O=S.me.owner;
+ m.innerHTML=`<div class="wrap"><div class="row" style="margin-bottom:10px">${has("invite")?`<button class="btn" data-act="invite">＋ Пригласить в группу</button>`:""}${O?`<button class="btn ghost" data-act="roles">Должности</button>`:""}</div>`+
+ (S.members.length?teamGroups().map(([n,a])=>`<div class="h2">${esc(n)} · ${a.length}</div>`+a.map(p=>{const k=S.shots.filter(h=>(h.assignees||[]).includes(p.tg_id)),pm=(p.perms||[]).length,tag=O&&!p.is_owner?`button data-member="${p.tg_id}"`:"div",end=O&&!p.is_owner?"button":"div";
+  return`<${tag} class="card"><span class="ava" style="width:34px;height:34px;margin:0;font-size:14px">${esc((p.name||"?")[0].toUpperCase())}</span><span class="grow"><div class="t">${esc(p.name)}${p.tg_id===S.me.id?" (вы)":""}</div><div class="sub">кадров: ${k.length}, готово: ${k.filter(h=>h.status==="done").length}${pm?" · прав: "+pm:""}${O&&!p.is_owner?" · изменить ›":""}</div></span></${end}>`}).join("")).join(""):`<div class="empty">Пока никого нет</div>`)+`</div>`}
+function memberSheet(p){const d=sheet(`<div class="h2" style="margin-top:0">${esc(p.name)}</div><div class="sub">Должность</div><div class="seg" id="rl">${S.roles.map(r=>`<button class="${p.role===r.name?"on":""}" data-r="${esc(r.name)}">${esc(r.name)}</button>`).join("")}</div><div class="h2">Права</div>${PERM_L.map(x=>`<label class="card" style="cursor:pointer"><input type="checkbox" value="${x[0]}" ${(p.perms||[]).includes(x[0])?"checked":""}><span class="grow">${x[1]}</span></label>`).join("")}<button class="btn" style="width:100%" id="ok">Готово</button>`);
+ let role=p.role||null;
+ d.querySelector("#rl").onclick=e=>{const r=e.target.dataset&&e.target.dataset.r;if(!r)return;role=r;d.querySelectorAll("#rl button").forEach(b=>b.classList.toggle("on",b.dataset.r===r))};
+ d.querySelector("#ok").onclick=async()=>{const perms=[...d.querySelectorAll("input:checked")].map(i=>i.value);d.remove();try{await call("set_member",{id:p.tg_id,role,perms});p.role=role;p.perms=perms;route()}catch(e){toast(errText(e))}}}
+function rolesSheet(){const d=sheet("");const draw=()=>{d.firstChild.innerHTML=`<div class="h2" style="margin-top:0">Должности</div>${S.roles.map(r=>`<div class="card"><span class="grow t">${esc(r.name)}${r.pickable?"":' <span class="sub">(назначает только режиссёр)</span>'}</span>${r.name==="Продюсер"?"":`<button class="ib" data-del="${esc(r.name)}">✕</button>`}</div>`).join("")}<div class="row"><input id="rn" placeholder="Новая должность" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)"><button class="btn" id="ra">＋</button></div>`;
+ if(parse()[0]==="team")viewTeam();
+ d.querySelector("#ra").onclick=async()=>{const n=d.querySelector("#rn").value.trim();if(!n)return;try{await call("add_role",{name:n});if(!S.roles.some(r=>r.name===n))S.roles.push({name:n,pickable:true});draw()}catch(e){toast(errText(e))}};
+ d.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{const n=b.dataset.del;if(!await askYes("Удалить должность «"+n+"»? У людей с ней должность сбросится."))return;try{await call("del_role",{name:n});S.roles=S.roles.filter(r=>r.name!==n);S.members.forEach(p=>{if(p.role===n)p.role=null});draw()}catch(e){toast(errText(e))}})};draw()}
 
 function viewShot(id){const h=S.shots.find(x=>x.id===id),m=$("#main");if(!h){m.innerHTML=`<div class="empty">Кадр не найден</div>`;return}
  $("#ttl").textContent="Кадр "+h.num;
- m.innerHTML=`<div class="wrap"><div id="hd"></div><div class="h2">Чат кадра</div><div id="chat"></div></div>`;
+ m.innerHTML=`<div class="wrap"><div id="hd"></div><div id="lv"></div><div class="h2">Чат кадра</div><div id="chat"></div></div>`;
  headSig="";paintHead(true);
- $("#foot").innerHTML=`<div class="mode" id="md"></div><div class="comp"><button class="ib" id="at" title="Файл или версия">📎</button><button class="ib" id="fx" title="Правка">✎</button><textarea id="tx" rows="1" placeholder="Сообщение…"></textarea><button class="btn" id="sn">➤</button></div>`;
+ $("#foot").innerHTML=`<div class="mode" id="md"></div><div class="comp"><button class="ib" id="at" title="Файл или версия">📎</button>${has("fix")?`<button class="ib" id="fx" title="Правка">✎</button>`:""}<textarea id="tx" rows="1" placeholder="Сообщение…"></textarea><button class="btn" id="sn">➤</button></div>`;
+ if(!canEdit(h))$("#foot").innerHTML=`<div class="mode" style="padding-bottom:10px">Вы не назначены на этот кадр: писать в чат и менять статус могут исполнители, режиссёр и те, у кого есть права.</div>`;
  S.pendingFile=null;S.asFile=false;S.fixMode=false;S.msgs=[];S.sinceMsgs=0;modeLine();renderChat();
- $("#at").onclick=()=>$("#pic").click();
- $("#fx").onclick=()=>{S.fixMode=!S.fixMode;$("#fx").style.borderColor=S.fixMode?"var(--s3)":"";modeLine()};
- $("#sn").onclick=sendMsg;
+ if($("#at"))$("#at").onclick=()=>$("#pic").click();
+ if($("#fx"))$("#fx").onclick=()=>{S.fixMode=!S.fixMode;$("#fx").style.borderColor=S.fixMode?"var(--s3)":"";modeLine()};
+ if($("#sn"))$("#sn").onclick=sendMsg;
  pollOnce(true)}
 let headSig="";
 function paintHead(force){const h=S.shots.find(x=>x.id===S.curShot),hd=$("#hd");if(!h||!hd)return;
@@ -237,7 +257,7 @@ function paintHead(force){const h=S.shots.find(x=>x.id===S.curShot),hd=$("#hd");
  <div class="row" style="margin-top:8px">${h.topic_id?`<button class="chip" data-act="topic" style="--c:var(--acc)">↗ Открыть топик в Telegram</button>`:`<span class="sub">Топик создастся при первом сообщении</span>`}</div>
  <div class="h2">Статус</div><div class="seg">${ST.map(s=>`<button class="${h.status===s[0]?"on":""}" style="--c:var(${s[2]})" data-st="${s[0]}"${cl}>${s[1]}</button>`).join("")}</div>
  <div class="h2">Выполнено: <span id="pv">${h.progress||0}</span>%</div><input type="range" min="0" max="100" step="5" value="${h.progress||0}" id="pr"${cl}>
- <div class="h2">Исполнители</div><div class="seg">${(h.assignees||[]).map(a=>`<span class="chip" style="--c:var(--acc)">${esc(nm(a))} · ${esc((mm(a)&&mm(a).role)||"")}</span>`).join("")||`<span class="sub">никого</span>`}${S.me.owner?`<button class="chip" data-act="assign" style="--c:var(--acc)">＋ назначить</button>`:""}</div>`;
+ <div class="h2">Исполнители</div><div class="seg">${(h.assignees||[]).map(a=>`<span class="chip" style="--c:var(--acc)">${esc(nm(a))} · ${esc((mm(a)&&mm(a).role)||"")}</span>`).join("")||`<span class="sub">никого</span>`}${has("assign")?`<button class="chip" data-act="assign" style="--c:var(--acc)">＋ назначить</button>`:""}</div>`;
  const pr=$("#pr");pr.oninput=()=>$("#pv").textContent=pr.value;
  pr.onchange=()=>{const v=+pr.value;setShot(h,{progress:v,...(v===100?{status:"done"}:(h.status==="todo"&&v>0?{status:"work"}:{}))})};
  paintThumbs();ensureThumbs([h.id])}
@@ -248,8 +268,8 @@ $("#pic").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
 async function sendMsg(){if(S.busy)return;const t=$("#tx").value.trim(),f=S.pendingFile;if(!t&&!f)return;
  const kind=f?(S.fixMode?"fix":"version"):S.fixMode?"fix":"text";S.busy=true;$("#sn").disabled=true;if(f)toast("Отправка файла…");
  try{const fd=new FormData();fd.append("action","post");fd.append("shot_id",S.curShot);fd.append("text",t);fd.append("kind",kind);if(S.asFile)fd.append("asfile","1");if(f)fd.append("file",f,f.name);
-  const r=await handle(await fetch(API,{method:"POST",headers:{"x-init-data":INIT},body:fd}));
-  mergeMsgs([r.msg]);$("#tx").value="";S.pendingFile=null;S.asFile=false;S.fixMode=false;$("#fx").style.borderColor="";modeLine();renderChat(true);pollOnce(true)
+  const r=await handle(await fetch(API,{method:"POST",headers:AH(),body:fd}));
+  mergeMsgs([r.msg]);$("#tx").value="";S.pendingFile=null;S.asFile=false;S.fixMode=false;if($("#fx"))$("#fx").style.borderColor="";modeLine();renderChat(true);pollOnce(true)
  }catch(e){toast("Не отправлено: "+errText(e))}
  S.busy=false;const b=$("#sn");if(b)b.disabled=false}
 function renderChat(forceStick){const c=$("#chat");if(!c)return;let v=0;const main=$("#main"),stick=forceStick||main.scrollHeight-main.scrollTop-main.clientHeight<200;
@@ -257,7 +277,8 @@ function renderChat(forceStick){const c=$("#chat");if(!c)return;let v=0;const ma
  c.innerHTML=S.msgs.length?S.msgs.map(x=>{const mine=x.by_id===S.me.id;if(x.kind==="version")v++;
   const tg=x.kind==="version"?`<span class="tag">v${v}</span>`:x.kind==="fix"?`<span class="tag ${x.done?"done":"fix"}" data-fx="${x.id}">${x.done?"исправлено":"правка"}</span>`:"";
   return`<div class="msg${mine?" me":""}"><div class="who">${esc(x.by_name||"Участник")} · ${new Date(x.ts).toLocaleString("ru",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>${tg}${mediaHtml(x,sh)}${esc(x.text)}</div>`}).join(""):`<div class="sub">Сообщений пока нет. Пишите здесь или прямо в топике в Telegram: всё попадёт сюда.</div>`;
- c.querySelectorAll("img[data-fid]").forEach(im=>fileBlob(im.dataset.fid).then(u=>{im.src=u}).catch(()=>{im.replaceWith(Object.assign(document.createElement("div"),{className:"sub",textContent:"Превью недоступно"}))}));
+ const lv=$("#lv");if(lv){const vs=S.msgs.filter(x=>x.kind==="version"),last=[...vs].reverse().find(x=>x.file_id);lv.innerHTML=last?`<div class="h2">Последний вариант · v${vs.indexOf(last)+1}</div><div class="msg" style="max-width:100%">${mediaHtml(last,sh)}</div>`:""}
+  document.querySelectorAll("#lv img[data-fid], #chat img[data-fid]").forEach(im=>fileBlob(im.dataset.fid).then(u=>{im.src=u}).catch(()=>{im.replaceWith(Object.assign(document.createElement("div"),{className:"sub",textContent:"Превью недоступно"}))}));
  if(stick)main.scrollTop=main.scrollHeight}
 function mediaHtml(x,sh){if(!x.file_id)return"";
  const link=sh&&sh.topic_id&&x.tg_msg_id?`<button data-open="${x.tg_msg_id}">↗ в Telegram</button>`:"";
@@ -278,7 +299,7 @@ function sheet(html){const d=document.createElement("div");d.className="sheet";d
 function assignSheet(h){const mem=S.members;
  const d=sheet(`<div class="h2" style="margin-top:0">Назначить на кадр ${esc(h.num)}</div>${mem.length?mem.map(p=>`<label class="card" style="cursor:pointer"><input type="checkbox" value="${p.tg_id}" ${(h.assignees||[]).includes(p.tg_id)?"checked":""}><span class="grow"><div class="t">${esc(p.name)}</div><div class="sub">${esc(p.is_owner?"Режиссёр":(p.role||""))}</div></span></label>`).join(""):`<p class="sub">В команде пока никого. Пригласите людей в группу на вкладке «Команда».</p>`}<button class="btn" style="width:100%" id="ok">Готово</button>`);
  d.querySelector("#ok").onclick=()=>{const a=[...d.querySelectorAll("input:checked")].map(i=>+i.value);d.remove();setShot(h,{assignees:a})}}
-function roleSheet(){const d=sheet(`<div class="h2" style="margin-top:0">Кто вы в проекте?</div><div class="seg">${ROLES.map(r=>`<button data-r="${r}">${r}</button>`).join("")}</div>`);
+function roleSheet(){const d=sheet(`<div class="h2" style="margin-top:0">Кто вы в проекте?</div><div class="seg">${S.roles.filter(r=>r.pickable).map(r=>`<button data-r="${esc(r.name)}">${esc(r.name)}</button>`).join("")}</div>`);
  d.onclick=async e=>{const r=e.target.dataset&&e.target.dataset.r;if(!r)return;d.remove();try{await call("set_role",{role:r});S.me.role=r;const p=mm(S.me.id);if(p)p.role=r;if(parse()[0]==="team")route()}catch(x){toast("Не удалось сохранить роль")}}}
 async function inviteFlow(){const label=await askText("Для кого ссылка? (имя, чтобы потом не путаться)");if(label===null)return;
  try{const r=await call("invite",{label:label||"Участник"});
@@ -289,14 +310,16 @@ async function inviteFlow(){const label=await askText("Для кого ссыл�
 const openTg=u=>TGW&&TGW.openTelegramLink?TGW.openTelegramLink(u):open(u);
 
 $("#main").onclick=e=>{const t=e.target;
+ if(t.dataset&&t.dataset.showall!==undefined){S.showAll=t.checked;return route()}
+ const mb=t.closest("[data-member]");if(mb){const p=mm(+mb.dataset.member);if(p)memberSheet(p);return}
  const g=t.closest("[data-go]");if(g)return go(g.dataset.go);
  const st=t.closest("[data-st]");if(st&&!st.disabled){const h=S.shots.find(x=>x.id===S.curShot);const k=st.dataset.st;return setShot(h,{status:k,...(k==="done"?{progress:100}:{})})}
  const a=t.closest("[data-act]");if(a){const h=S.shots.find(x=>x.id===S.curShot),k=a.dataset.act;
-  if(k==="assign")return assignSheet(h);if(k==="topics")return topicsSheet();if(k==="invite")return inviteFlow();
+  if(k==="roles")return rolesSheet();if(k==="assign")return assignSheet(h);if(k==="topics")return topicsSheet();if(k==="invite")return inviteFlow();
   if(k==="topic"&&h)return openTg("https://t.me/c/"+S.chat+"/"+h.topic_id)}
  const o=t.closest("[data-open]");if(o){const h=S.shots.find(x=>x.id===S.curShot);return openTg("https://t.me/c/"+S.chat+"/"+o.dataset.open+"?thread="+h.topic_id)}
  const tm=t.closest("[data-tome]");if(tm){return call("send_to_me",{id:+tm.dataset.tome}).then(()=>toast("Отправлено вам в личку от бота")).catch(e=>toast(errText(e)))}
- const f=t.closest("[data-fx]");if(f&&S.me.owner)return call("toggle_fix",{id:+f.dataset.fx}).then(()=>pollOnce(true)).catch(e=>toast(errText(e)));
+ const f=t.closest("[data-fx]");if(f&&has("fix"))return call("toggle_fix",{id:+f.dataset.fx}).then(()=>pollOnce(true)).catch(e=>toast(errText(e)));
  const im=t.closest(".msg img");if(im&&im.src){const l=document.createElement("div");l.className="lb";l.innerHTML=`<img src="${im.src}">`;l.onclick=()=>l.remove();document.body.append(l);
   const full=im.dataset.full;if(full&&full!==im.dataset.fid)fileBlob(full).then(u=>{const x=l.querySelector("img");if(x)x.src=u}).catch(()=>{})}};
 $("#foot").onclick=e=>{const a=e.target.closest("[data-act]");if(!a)return;
@@ -311,8 +334,9 @@ async function pollOnce(now){if(!S.me)return;if(polling||(document.hidden&&!now)
  try{const sid=S.curShot;const r=await call("poll",{since_shots:S.sinceShots,shot_id:sid,since_msgs:S.sinceMsgs});
   if(S.project&&r.project&&r.project.imported_at!==S.project.imported_at){polling=false;await boot(true);schedule();return}
   let chShots=false,chMem=false,chMsgs=false;
+  if(r.roles&&JSON.stringify(r.roles)!==JSON.stringify(S.roles)){S.roles=r.roles;chMem=true}
   if(r.shots.length){const before=JSON.stringify(r.shots.map(x=>S.shots.find(y=>y.id===x.id)));mergeShots(r.shots);chShots=before!==JSON.stringify(r.shots)}
-  if(JSON.stringify(r.members)!==JSON.stringify(S.members)){S.members=r.members;chMem=true}
+  if(JSON.stringify(r.members)!==JSON.stringify(S.members)){S.members=r.members;chMem=true;const me=mm(S.me.id);if(me){S.me.role=me.role;S.me.perms=me.perms||[]}}
   if(sid===S.curShot&&r.msgs){const n0=S.msgs.length,sig=JSON.stringify(S.msgs);mergeMsgs(r.msgs);chMsgs=sig!==JSON.stringify(S.msgs)||S.msgs.length!==n0||n0===0}
   const busy=document.querySelector(".sheet,.lb");
   if(parse()[0]==="shot"){if((chShots||chMem)&&!document.activeElement.matches?.("#pr"))paintHead(true);if(chMsgs)renderChat()}
@@ -323,17 +347,20 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)pollOnce(t
 
 /* ---------- запуск ---------- */
 function fatal(html){$("#main").innerHTML=`<div class="empty">${html}</div>`;$("#nav").hidden=true;$("#foot").innerHTML=""}
+function loginScreen(){fatal(`Войдите через Telegram<div id="lg" style="margin-top:16px;min-height:44px"></div><div class="sub" style="margin-top:12px">Или откройте приложение кнопкой «Проект» у бота.</div>`);
+ window.onTgAuth=async u=>{try{const r=await handle(await fetch(API,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"login",data:u})}));WEB=r.token;try{localStorage.setItem("noem_web",WEB)}catch(e){}boot()}catch(e){toast("Не удалось войти: "+errText(e))}};
+ const s=document.createElement("script");s.async=true;s.src="https://telegram.org/js/telegram-widget.js?22";s.dataset.telegramLogin=BOT_NAME;s.dataset.size="large";s.dataset.onauth="onTgAuth(user)";s.dataset.requestAccess="write";$("#lg").append(s)}
 async function boot(again){
  if(!again)$("#main").innerHTML=`<div class="empty">Подключение…</div>`;
- if(!INIT)return fatal("Откройте приложение из Telegram:<br>кнопка «Проект» у бота.");
+ if(!INIT&&!WEB)return loginScreen();
  if(API.includes("ВАШ-ПРОЕКТ"))return fatal("В файле index.html не указан адрес API.<br><span class=\"sub\">Замените ВАШ-ПРОЕКТ в строке API.</span>");
  let r;
  try{r=await call("bootstrap",{})}catch(e){
   if(e.code==="not_member")return fatal("Вы не участник группы проекта.<br><span class=\"sub\">Попросите у режиссёра ссылку-приглашение.</span>");
   if(e.code==="unbound")return fatal("Проект ещё не настроен.<br><span class=\"sub\">Режиссёр должен привязать группу командой /bind.</span>");
-  if(e.code==="auth")return fatal("Не удалось подтвердить вход через Telegram.<br><span class=\"sub\">Закройте и откройте приложение заново.</span>");
+  if(e.code==="auth"&&!INIT){WEB="";try{localStorage.removeItem("noem_web")}catch(x){}return loginScreen()}if(e.code==="auth")return fatal("Не удалось подтвердить вход через Telegram.<br><span class=\"sub\">Закройте и откройте приложение заново.</span>");
   return fatal("Не удалось подключиться: "+esc(errText(e))+`<br><button class="btn" onclick="boot()">Повторить</button>`)}
- S.me=r.me;S.scenes=r.scenes;S.shots=r.shots;S.members=r.members;S.project=r.project;S.chat=r.chat;S.bound=r.bound;S.sinceShots=maxU(r.shots,0);
+ S.me=r.me;S.roles=r.roles||[];S.scenes=r.scenes;S.shots=r.shots;S.members=r.members;S.project=r.project;S.chat=r.chat;S.bound=r.bound;S.sinceShots=maxU(r.shots,0);
  if(!S.bound&&S.me.owner){$("#nav").hidden=false;$("#imp").hidden=false;
   $("#main").innerHTML=`<div class="wrap"><div class="note"><b>Осталось привязать группу.</b><br>Откройте вашу группу с темами и отправьте в ней команду <b>/bind</b>. Бот ответит, что группа привязана и каких прав ему не хватает. Потом нажмите «Проверить».</div><button class="btn" onclick="boot()">Проверить</button></div>`;return}
  if(!S.me.owner&&!S.me.role&&!document.querySelector(".sheet"))roleSheet();
