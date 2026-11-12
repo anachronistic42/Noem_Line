@@ -63,7 +63,9 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 .tag{font-size:11px;font-weight:600;border-radius:6px;padding:1px 6px;margin-right:6px;color:var(--accT);background:var(--s1)}
 .tag.fix{background:var(--s3)}.tag.done{background:var(--s4)}
 .comp{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:var(--panel);align-items:flex-end}
-.comp textarea{flex:1;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--bg);resize:none;max-height:110px}
+.comp textarea{flex:1;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--bg);resize:none;max-height:40vh;overflow-y:auto;line-height:1.35}
+#hd .th{cursor:zoom-in}
+body.dz::after{content:"Отпустите файл, чтобы прикрепить";position:fixed;inset:8px;border:2px dashed var(--acc);border-radius:16px;background:#0008;color:#fff;display:grid;place-items:center;font-size:16px;z-index:25;pointer-events:none}
 .mode{font-size:12px;color:var(--mute);padding:6px 14px 0;background:var(--panel);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .mode button{color:var(--acc);font-size:12px}
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:20}
@@ -76,7 +78,7 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 </style>
 </head>
 <body>
-<header><button class="ib" id="back" hidden>‹</button><h1 id="ttl">Noem.pipeline</h1><button class="ib" id="imp" hidden title="Импорт .noemocean">⇪</button></header>
+<header><button class="ib" id="back" hidden>‹</button><h1 id="ttl">Noem.pipeline</h1><button class="ib" id="cfg" hidden title="Настройки кадра"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button><button class="ib" id="imp" hidden title="Импорт .noemocean">⇪</button></header>
 <main id="main"></main>
 <div id="foot"></div>
 <nav id="nav"><button data-r="scenes">Сцены</button><button data-r="team">Команда</button></nav>
@@ -198,14 +200,14 @@ function topicsSheet(){
 function go(h){location.hash=h}
 function parse(){const h=location.hash.slice(1)||"scenes",i=h.indexOf("-");return i<0?[h,""]:[h.slice(0,i),h.slice(i+1)]}
 function route(){if(!S.me)return;const[v,id]=parse();
- $("#back").hidden=NATIVE_BACK||!(v==="scene"||v==="shot");$("#imp").hidden=!S.me.owner;$("#nav").hidden=v==="shot";
+ $("#back").hidden=NATIVE_BACK||!(v==="scene"||v==="shot");$("#imp").hidden=!S.me.owner;$("#cfg").hidden=v!=="shot";$("#nav").hidden=v==="shot";
  if(NATIVE_BACK){(v==="scene"||v==="shot")?TGW.BackButton.show():TGW.BackButton.hide()}
  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.r===(v==="team"?"team":"scenes")));
  $("#ttl").textContent=v==="scene"?"Сцена":v==="shot"?"Кадр":v==="team"?"Команда":(S.project&&S.project.title)||"Noem.pipeline";
  S.curShot=v==="shot"?id:null;if(v!=="shot")$("#foot").innerHTML="";
  if(v==="scene")return viewScene(id);if(v==="shot")return viewShot(id);if(v==="team")return viewTeam();viewScenes()}
 function goBack(){const[v,id]=parse();if(v==="shot"){const h=S.shots.find(x=>x.id===id);go(h?"scene-"+h.scene:"scenes")}else go("scenes")}
-$("#back").onclick=goBack;if(NATIVE_BACK)TGW.BackButton.onClick(goBack);
+$("#cfg").onclick=()=>shotSheet();$("#back").onclick=goBack;if(NATIVE_BACK)TGW.BackButton.onClick(goBack);
 $("#nav").onclick=e=>{const r=e.target.dataset&&e.target.dataset.r;if(r)go(r)};
 $("#imp").onclick=()=>$("#file").click();
 $("#file").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)importFile(f)};
@@ -251,12 +253,13 @@ function viewShot(id){const h=S.shots.find(x=>x.id===id),m=$("#main");if(!h){m.i
  $("#ttl").textContent="Кадр "+h.num;
  m.innerHTML=`<div class="wrap"><div id="hd"></div><div id="lv"></div><div id="pn"></div><div class="h2">Чат кадра</div><div id="chat"></div></div>`;
  S.ss={};{const cs=S.stages.find(s=>s.id===h.cur_stage)||S.stages[0];S.stage=cs?cs.id:null}headSig="";paintHead(true);
- $("#foot").innerHTML=`<div class="mode" id="md"></div><div class="comp"><button class="ib" id="at" title="Файл или версия">📎</button>${has("fix")?`<button class="ib" id="fx" title="Правка">✎</button>`:""}<textarea id="tx" rows="1" placeholder="Сообщение…"></textarea><button class="btn" id="sn">➤</button></div>`;
- if(!canEdit(h))$("#foot").innerHTML=`<div class="mode" style="padding-bottom:10px">Вы не назначены на этот кадр: писать в чат и менять статус могут исполнители, режиссёр и те, у кого есть права.</div>`;
+ $("#foot").innerHTML=`<div class="mode" id="md"></div><div class="comp"><button class="ib" id="at" title="Файл или версия">${INIT?"📎":`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`}</button>${has("fix")?`<button class="ib" id="fx" title="Правка">✎</button>`:""}<textarea id="tx" rows="1" placeholder="${INIT?"Сообщение…":"Сообщение… (Ctrl+Enter — отправить)"}"></textarea><button class="btn" id="sn">➤</button></div>`;
+ if(!canEdit(h))$("#foot").innerHTML=`<div class="mode" style="padding-bottom:10px">Вы не назначены на этот кадр: чат можно читать, но писать в него и менять статус могут только исполнители, режиссёр и те, у кого есть права.</div>`;
  S.pendingFile=null;S.asFile=false;S.fixMode=false;S.msgs=[];S.sinceMsgs=0;modeLine();renderChat();
  if($("#at"))$("#at").onclick=()=>$("#pic").click();
  if($("#fx"))$("#fx").onclick=()=>{S.fixMode=!S.fixMode;$("#fx").style.borderColor=S.fixMode?"var(--s3)":"";modeLine()};
  if($("#sn"))$("#sn").onclick=sendMsg;
+ if($("#tx")){const tx=$("#tx");tx.oninput=growTx;tx.onkeydown=e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();sendMsg()}};tx.onpaste=e=>{const f=[...(e.clipboardData&&e.clipboardData.files||[])][0];if(f){e.preventDefault();setPicked(f)}}}
  pollOnce(true)}
 let headSig="";
 function paintHead(force){const h=S.shots.find(x=>x.id===S.curShot),hd=$("#hd");if(!h||!hd)return;
@@ -264,7 +267,6 @@ function paintHead(force){const h=S.shots.find(x=>x.id===S.curShot),hd=$("#hd");
  const ed=canEdit(h),cl=ed?"":" disabled";
  const sr=(S.stages.length||S.me.owner)?`<div class="seg" style="margin-top:10px">${S.stages.map(s=>`<button class="${s.id===S.stage?"on":""}" data-stage="${s.id}">${esc(s.name)}</button>`).join("")}${S.me.owner?`<button data-act="stages">⚙ Этапы</button>`:""}</div>`:"";
  hd.innerHTML=`<div class="row" style="align-items:flex-start"><span class="th" data-th="${h.id}" style="width:120px;height:74px"></span><span class="grow"><div class="sub" style="-webkit-line-clamp:4">${esc(h.action||"Без описания")}</div><div class="sub">${[h.scale,h.montage,h.tc&&("хрон "+h.tc)].filter(Boolean).map(esc).join(" · ")}</div>${h.sound?`<div class="sub">♪ ${esc(h.sound)}</div>`:""}</span></div>
- <div class="row" style="margin-top:8px">${h.topic_id?`<button class="chip" data-act="topic" style="--c:var(--acc)">↗ Открыть топик в Telegram</button>`:`<span class="sub">Топик создастся при первом сообщении</span>`}</div>
  ${sr}<div class="h2">Статус</div><div class="seg">${ST.map(s=>`<button class="${st.status===s[0]?"on":""}" style="--c:var(${s[2]})" data-st="${s[0]}"${cl}>${s[1]}</button>`).join("")}</div>
  <div class="h2">Выполнено: <span id="pv">${st.progress}</span>%</div><input type="range" min="0" max="100" step="5" value="${st.progress}" id="pr"${cl}>
  <div class="h2">Исполнители</div><div class="seg">${(h.assignees||[]).map(a=>`<span class="chip" style="--c:var(--acc)">${esc(nm(a))} · ${esc((mm(a)&&mm(a).role)||"")}</span>`).join("")||`<span class="sub">никого</span>`}${has("assign")?`<button class="chip" data-act="assign" style="--c:var(--acc)">＋ назначить</button>`:""}</div>`;
@@ -273,13 +275,24 @@ function paintHead(force){const h=S.shots.find(x=>x.id===S.curShot),hd=$("#hd");
  paintThumbs();ensureThumbs([h.id])}
 function modeLine(){const e=$("#md");if(!e)return;const f=S.pendingFile;
  e.innerHTML=(S.fixMode?"Режим: правка":"")+(f?` <span>Файл: ${esc(f.name)} (${fmtSize(f.size)})</span>${/^image\//.test(f.type)?`<button data-act="asfile">${S.asFile?"✓ без сжатия":"без сжатия"}</button>`:""}<button data-act="dropfile">убрать</button>`:"")}
-$("#pic").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
- if(f.size>50*1024*1024){toast(ERR.too_big);return}S.pendingFile=f;S.asFile=false;modeLine()};
+function setPicked(f){if(!f)return;if(f.size>50*1024*1024){toast(ERR.too_big);return}S.pendingFile=f;S.asFile=false;modeLine()}
+function growTx(){const t=$("#tx");if(!t)return;t.style.height="auto";t.style.height=Math.min(t.scrollHeight+2,Math.round(innerHeight*0.4))+"px"}
+$("#pic").onchange=e=>{const f=e.target.files[0];e.target.value="";setPicked(f)};
+{let dc=0;const hasF=e=>e.dataTransfer&&[...(e.dataTransfer.types||[])].includes("Files");
+ addEventListener("dragenter",e=>{if(!hasF(e))return;e.preventDefault();dc++;if($("#tx"))document.body.classList.add("dz")});
+ addEventListener("dragover",e=>{if(hasF(e))e.preventDefault()});
+ addEventListener("dragleave",e=>{if(!hasF(e))return;dc=Math.max(0,dc-1);if(!dc)document.body.classList.remove("dz")});
+ addEventListener("drop",e=>{if(!hasF(e))return;e.preventDefault();dc=0;document.body.classList.remove("dz");if(!$("#tx"))return;const fs=e.dataTransfer.files;if(fs&&fs[0])setPicked(fs[0]);if(fs&&fs.length>1)toast("Прикреплён только первый файл")})}
+function shotSheet(){const h=S.shots.find(x=>x.id===S.curShot);if(!h)return;
+ const own=S.me.owner||S.me.role==="Продюсер";
+ const d=sheet(`<div class="h2" style="margin-top:0">Настройки кадра ${esc(h.num)}</div>${h.topic_id&&S.chat?`<button class="card" id="ot" style="width:100%;text-align:left">↗ Открыть топик в Telegram</button>`:`<div class="sub">Топик создастся при первом сообщении</div>`}${own?"":`<label class="note" style="display:block;margin-top:12px"><input type="checkbox" id="sa2" ${S.showAll?"checked":""}> Показать задачи, на которые вы не назначены</label><div class="sub" style="-webkit-line-clamp:unset">Чат таких кадров можно читать, но писать в него и менять статус нельзя.</div>`}`);
+ const ot=d.querySelector("#ot");if(ot)ot.onclick=()=>{d.remove();openTg("https://t.me/c/"+S.chat+"/"+h.topic_id)};
+ const sa=d.querySelector("#sa2");if(sa)sa.onchange=()=>{S.showAll=sa.checked}}
 async function sendMsg(){if(S.busy)return;const t=$("#tx").value.trim(),f=S.pendingFile;if(!t&&!f)return;
  const kind=f?(S.fixMode?"fix":"version"):S.fixMode?"fix":"text";S.busy=true;$("#sn").disabled=true;if(f)toast("Отправка файла…");
  try{const fd=new FormData();fd.append("action","post");fd.append("shot_id",S.curShot);fd.append("text",t);fd.append("kind",kind);if(S.stage)fd.append("stage_id",S.stage);if(S.asFile)fd.append("asfile","1");if(f)fd.append("file",f,f.name);
   const r=await handle(await fetch(API,{method:"POST",headers:AH(),body:fd}));
-  mergeMsgs([r.msg]);$("#tx").value="";S.pendingFile=null;S.asFile=false;S.fixMode=false;if($("#fx"))$("#fx").style.borderColor="";modeLine();renderChat(true);pollOnce(true)
+  mergeMsgs([r.msg]);$("#tx").value="";growTx();S.pendingFile=null;S.asFile=false;S.fixMode=false;if($("#fx"))$("#fx").style.borderColor="";modeLine();renderChat(true);pollOnce(true)
  }catch(e){toast("Не отправлено: "+errText(e))}
  S.busy=false;const b=$("#sn");if(b)b.disabled=false}
 function renderChat(forceStick){const c=$("#chat");if(!c)return;const main=$("#main"),stick=forceStick||main.scrollHeight-main.scrollTop-main.clientHeight<200;
@@ -338,6 +351,7 @@ $("#main").onclick=e=>{const t=e.target;
  const o=t.closest("[data-open]");if(o){const h=S.shots.find(x=>x.id===S.curShot);return openTg("https://t.me/c/"+S.chat+"/"+o.dataset.open+"?thread="+h.topic_id)}
  const tm=t.closest("[data-tome]");if(tm){return call("send_to_me",{id:+tm.dataset.tome}).then(()=>toast("Отправлено вам в личку от бота")).catch(e=>toast(errText(e)))}
  const f=t.closest("[data-fx]");if(f&&has("fix"))return call("toggle_fix",{id:+f.dataset.fx}).then(()=>pollOnce(true)).catch(e=>toast(errText(e)));
+ const th0=t.closest("#hd .th");if(th0){const u=S.thumbs[th0.dataset.th];if(u){const l=document.createElement("div");l.className="lb";l.innerHTML=`<img src="${u}">`;l.onclick=()=>l.remove();document.body.append(l)}return}
  const im=t.closest(".msg img");if(im&&im.src){const l=document.createElement("div");l.className="lb";l.innerHTML=`<img src="${im.src}">`;l.onclick=()=>l.remove();document.body.append(l);
   const full=im.dataset.full;if(full&&full!==im.dataset.fid)fileBlob(full).then(u=>{const x=l.querySelector("img");if(x)x.src=u}).catch(()=>{})}};
 $("#foot").onclick=e=>{const a=e.target.closest("[data-act]");if(!a)return;
