@@ -105,7 +105,7 @@ textarea.inp{resize:vertical}
 <main id="main"></main>
 <div id="foot"></div>
 <nav id="nav"><button data-r="scenes">Сцены</button><button data-r="team">Команда</button></nav>
-<input type="file" id="file" accept=".noemocean,.noem.ocean,.noemotion,application/json" hidden>
+<input type="file" id="file" accept=".noemocean,.noem.ocean,.noemotion,.noemtoline,.noemline,.zip,application/json,application/zip" hidden>
 <input type="file" id="pic" hidden>
 <input type="file" id="pdf" accept="application/pdf,.pdf" hidden>
 <input type="file" id="vid" accept="video/mp4,video/*,.mp4" hidden>
@@ -183,10 +183,20 @@ function mergeShots(rows){for(const r of rows){const i=S.shots.findIndex(x=>x.id
  S.shots.sort((a,b)=>a.ord-b.ord);S.sinceShots=maxU(rows,S.sinceShots)}
 function mergeMsgs(rows){for(const r of rows){const i=S.msgs.findIndex(x=>x.id===r.id);if(i<0)S.msgs.push(r);else S.msgs[i]=r}
  S.msgs.sort((a,b)=>a.id-b.id);S.sinceMsgs=maxU(rows,S.sinceMsgs)}
-async function ensureThumbs(ids){const need=ids.filter(i=>!(i in S.thumbs));if(!need.length)return;need.forEach(i=>S.thumbs[i]="");
+/* картинки кадров из GitHub: папка media рядом с index.html; миниатюры лежат в media/thumbs */
+const imgsOf=h=>Array.isArray(h&&h.img_files)?h.img_files:[];
+const mediaUrl=(f,thumb)=>{const v=(S.project&&S.project.imported_at)||"";return new URL("media/"+(thumb?"thumbs/"+String(f).replace(/\.[^.\/]+$/,".jpg"):String(f)).split("/").map(encodeURIComponent).join("/")+(v?"?v="+v:""),location.href).href};
+/* что показывать у кадра: обложка (Supabase) приоритетнее, затем картинка из GitHub, затем старая миниатюра из .noemocean */
+function thumbSrc(id){const h=S.shots.find(x=>x.id===id),lg=S.thumbs[id]||"";if(!h||h.cover)return lg?[lg]:[];const f=imgsOf(h)[0];return f?[mediaUrl(f,true),mediaUrl(f),lg].filter(Boolean):(lg?[lg]:[])}
+const BAD=new Set();
+function setBg(e,list){list=list.filter(u=>u&&!BAD.has(u));if(!list.length)return;const u=list[0];if(e.dataset.pt===u)return;
+ if(u.startsWith("data:")){e.style.backgroundImage="url("+u+")";e.dataset.pt=u;return}
+ const im=new Image();im.onload=()=>{e.style.backgroundImage="url("+u+")";e.dataset.pt=u};im.onerror=()=>{BAD.add(u);setBg(e,list.slice(1))};im.src=u}
+const needSrvThumb=id=>{const h=S.shots.find(x=>x.id===id);return !h||h.cover||!imgsOf(h)[0]};
+async function ensureThumbs(ids){const need=ids.filter(i=>!(i in S.thumbs)&&needSrvThumb(i));if(!need.length)return;need.forEach(i=>S.thumbs[i]="");
  try{for(let i=0;i<need.length;i+=100){const r=await call("thumbs",{ids:need.slice(i,i+100)});Object.assign(S.thumbs,r)}}catch(e){}
  paintThumbs()}
-function paintThumbs(){document.querySelectorAll("[data-th]").forEach(e=>{const t=S.thumbs[e.dataset.th];if(t)e.style.backgroundImage="url("+t+")"})}
+function paintThumbs(){document.querySelectorAll("[data-th]").forEach(e=>setBg(e,thumbSrc(e.dataset.th)))}
 
 /* ---------- импорт .noemocean ---------- */
 function srcOf(r,i){i=i||0;try{const v=(r.sbVars||[])[i];const src=Array.isArray(v)?v[(r.sbSel||[])[i]||0]||v[0]:v;return typeof src==="string"&&src.startsWith("data:image")?src:""}catch(e){return""}}
@@ -210,8 +220,100 @@ function detectSceneNums(SR){
  const src=ok(A)?A:ok(B)?B:null,oth=src===A?B:A,out=[];let last=0;
  SR.forEach((r,i)=>{let v=src?(src[i]||oth[i]||""):"";if(!v)v=String(last+1);const n=parseInt(v,10);if(!isNaN(n))last=n;out.push(v)});
  return out}
+/* ---------- импорт архива «Noem_Line» из Noem_ocean: .noemtoline (json) или весь .zip ---------- */
+/* читает из zip один файл (по центральному каталогу), не загружая весь архив в память: картинки в архиве не нужны, они лежат в GitHub */
+async function readZipEntry(file,pick){
+ const sl=(a,b)=>file.slice(a,b).arrayBuffer(),size=file.size,tl=Math.min(size,65557),tail=new DataView(await sl(size-tl,size));
+ let e=-1;for(let i=tail.byteLength-22;i>=0;i--){if(tail.getUint32(i,true)===0x06054b50){e=i;break}}
+ if(e<0)throw new Error("not zip");
+ const cnt=tail.getUint16(e+10,true),cdSize=tail.getUint32(e+12,true),cdOff=tail.getUint32(e+16,true);
+ if(cdOff===0xFFFFFFFF||cnt===0xFFFF)throw new Error("zip64");
+ const cd=new DataView(await sl(cdOff,cdOff+cdSize)),dec=new TextDecoder("utf-8");let p=0;
+ for(let k=0;k<cnt&&p+46<=cd.byteLength;k++){
+  if(cd.getUint32(p,true)!==0x02014b50)break;
+  const method=cd.getUint16(p+10,true),csz=cd.getUint32(p+20,true),nl=cd.getUint16(p+28,true),xl=cd.getUint16(p+30,true),cl=cd.getUint16(p+32,true),lo=cd.getUint32(p+42,true),
+   name=dec.decode(new Uint8Array(cd.buffer,cd.byteOffset+p+46,nl));
+  p+=46+nl+xl+cl;
+  if(!pick(name))continue;
+  const lh=new DataView(await sl(lo,lo+30)),off=lo+30+lh.getUint16(26,true)+lh.getUint16(28,true),raw=await sl(off,off+csz);
+  if(method===0)return{name,buf:raw};
+  if(method===8)return{name,buf:await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()};
+  throw new Error("method")}
+ return null}
+/* сопоставление: названия (с поправкой на изменения), номера, порядок, количество кадров */
+const nzs=t=>String(t||"").toLowerCase().replace(/ё/g,"е");
+const STOPW=new Set(["инт","нат","int","ext","сцена","scene","кадр"]);
+function toks(t){return nzs(t).replace(/^\s*[№#]?\s*\d+[a-zа-я]?\s*(?:[.):\-–—]|$)/,"").replace(/(?:^|\s)(?:сцена|scene|сц\.?|эпизод)\s*[№#]?\s*\d+[a-zа-я]?(?=\s|$|[.,:\-–—])/g," ").replace(/[^a-zа-я0-9\s]/g," ").split(/\s+/).filter(w=>w.length>1&&!STOPW.has(w))}
+const tokEq=(a,b)=>{if(a===b)return true;const m=Math.min(a.length,b.length);let n=0;while(n<m&&a[n]===b[n])n++;return n>=Math.max(4,m-2)};
+function dice(A,B){if(!A.length||!B.length)return 0;const used=new Set();let hit=0;for(const a of A)for(let j=0;j<B.length;j++)if(!used.has(j)&&tokEq(a,B[j])){used.add(j);hit++;break}return 2*hit/(A.length+B.length)}
+const nnum=v=>nzs(v).replace(/^[№#\s]+/,"").replace(/^0+(?=\d)/,"").trim();
+const relPos=(i,n)=>n>1?i/(n-1):0,posSim=(i,n,j,m)=>1-Math.min(1,Math.abs(relPos(i,n)-relPos(j,m))*3);
+/* пары (i,j) по порядку, без пересечений, с максимальной суммой оценок; пары с оценкой ниже T не создаются */
+function alignDP(na,nb,score,T){
+ const W=[];for(let i=0;i<na;i++){W.push([]);for(let j=0;j<nb;j++){const v=score(i,j);W[i].push(v>=T?v:-1)}}
+ const D=Array.from({length:na+1},()=>new Array(nb+1).fill(0));
+ for(let i=1;i<=na;i++)for(let j=1;j<=nb;j++){let b=Math.max(D[i-1][j],D[i][j-1]);if(W[i-1][j-1]>=0)b=Math.max(b,D[i-1][j-1]+W[i-1][j-1]);D[i][j]=b}
+ const out=[];let i=na,j=nb;
+ while(i>0&&j>0){if(W[i-1][j-1]>=0&&D[i][j]===D[i-1][j-1]+W[i-1][j-1]){out.push([i-1,j-1]);i--;j--}else if(D[i][j]===D[i-1][j])i--;else j--}
+ return out.reverse()}
+function parseLine(d){
+ const rows=(d.rows||[]).filter(r=>r&&(r.type==="scene"||r.type==="shot")&&!r.hidden),AS=[],AH=[];
+ const NUMS=detectSceneNums(rows.filter(r=>r.type==="scene"));let si=0,cur=null;
+ for(const r of rows){
+  if(r.type==="scene"){cur={key:"sc"+r.id,num:NUMS[si++],title:r.isCustomText?(r.customText||"Сцена"):([r.sceneIntExt,r.sceneLoc,r.sceneTime].filter(Boolean).join(" · ")||r.title||"Сцена"),info:r.sceneInfo||"",shots:[]};AS.push(cur)}
+  else{if(!cur){cur={key:"sc0",num:"0",title:"Без сцены",info:"",shots:[]};AS.push(cur)}
+   const h={key:"sh"+r.id,scene:cur,num:String(r.num||String(AH.length+1).padStart(4,"0")),action:r.action||"",sound:r.sound||"",notes:r.notes||"",scale:r.scale||"",montage:r.montage||"",tc:r.timecode||"",img:(Array.isArray(r.images)?r.images:[]).map(x=>x?String(x):null)};cur.shots.push(h);AH.push(h)}}
+ return{AS,AH}}
+function matchWithExisting(AS,AH){
+ const ES=S.scenes.filter(s=>s.id!==SND).sort((a,b)=>a.ord-b.ord),EH=S.shots.filter(h=>!isSnd(h)),
+  eSh=new Map(ES.map(e=>[e.id,EH.filter(h=>h.scene===e.id).sort((a,b)=>a.ord-b.ord)])),
+  sMap=new Map(),hMap=new Map(),usedS=new Set(),usedH=new Set();
+ /* 1) тот же внутренний id из Noem_ocean: самое надёжное совпадение */
+ AS.forEach(a=>{const e=ES.find(x=>x.id===a.key);if(e){sMap.set(a,e);usedS.add(e.id)}});
+ AH.forEach(a=>{const e=EH.find(x=>x.id===a.key);if(e){hMap.set(a,e);usedH.add(e.id)}});
+ /* 2) остальные сцены: название, номер, место в порядке, число кадров, текст кадров */
+ const rA=AS.filter(a=>!sMap.has(a)),rE=ES.filter(e=>!usedS.has(e.id)),
+  bag=l=>toks(l.map(h=>h.action).join(" ")),aB=new Map(rA.map(a=>[a,bag(a.shots)])),eB=new Map(rE.map(e=>[e.id,bag(eSh.get(e.id))]));
+ alignDP(rA.length,rE.length,(i,j)=>{const a=rA[i],e=rE[j],ta=nzs(a.title).trim(),te=nzs(e.title).trim(),na=a.shots.length,ne=eSh.get(e.id).length;let v=dice(toks(a.title),toks(e.title))*50;
+  if(ta&&ta===te)v+=10;if(nnum(a.num)&&nnum(a.num)===nnum(e.num))v+=15;
+  v+=12*posSim(AS.indexOf(a),AS.length,ES.indexOf(e),ES.length)+13*(1-Math.abs(na-ne)/Math.max(na,ne,1))+25*dice(aB.get(a),eB.get(e.id));return v},28)
+  .forEach(([i,j])=>{sMap.set(rA[i],rE[j]);usedS.add(rE[j].id)});
+ /* 3) кадры внутри сопоставленных сцен: номер, текст, место в порядке (и совпадение числа кадров) */
+ AS.forEach(a=>{const e=sMap.get(a);if(!e)return;const ae=eSh.get(e.id),rAh=a.shots.filter(h=>!hMap.has(h)),rEh=ae.filter(h=>!usedH.has(h.id));if(!rAh.length||!rEh.length)return;
+  const same=a.shots.length===ae.length;
+  alignDP(rAh.length,rEh.length,(i,j)=>{const x=rAh[i],y=rEh[j],ix=a.shots.indexOf(x),iy=ae.indexOf(y);let v=dice(toks(x.action),toks(y.action))*45+15*posSim(ix,a.shots.length,iy,ae.length);
+   if(nnum(x.num)&&nnum(x.num)===nnum(y.num))v+=30;if(same&&ix===iy)v+=20;return v},25)
+   .forEach(([i,j])=>{hMap.set(rAh[i],rEh[j]);usedH.add(rEh[j].id)})});
+ return{ES,EH,sMap,hMap}}
+async function importLine(d){
+ const{AS,AH}=parseLine(d);if(!AH.length)return toast("В архиве нет кадров");
+ const{ES,EH,sMap,hMap}=matchWithExisting(AS,AH),nImg=AH.reduce((n,h)=>n+h.img.filter(Boolean).length,0);
+ if(ES.length||EH.length){
+  const fz=[...sMap].filter(([a,e])=>a.key!==e.id),L=["Архив: "+AS.length+" сцен, "+AH.length+" кадров, картинок "+nImg+".","",
+   "Сцены: сопоставлено "+sMap.size+" (по названию, номеру и порядку: "+fz.length+"), новых "+(AS.length-sMap.size)+".",
+   "Кадры: сопоставлено "+hMap.size+", новых "+(AH.length-hMap.size)+", без пары в архиве останется "+Math.max(0,EH.length-hMap.size)+" (они не удаляются)."];
+  if(fz.length){L.push("","Сопоставлены по названию/порядку:");fz.slice(0,6).forEach(([a,e])=>L.push("• «"+e.title+"» → «"+a.title+"»"));if(fz.length>6)L.push("…и ещё "+(fz.length-6))}
+  L.push("","Статусы, исполнители и топики сопоставленных кадров сохранятся. Продолжить?");
+  if(!await askYes(L.join("\n")))return}
+ const scenes=[],shots=[];let ord=0;
+ for(const a of AS){const sid=(sMap.get(a)||{}).id||a.key;scenes.push({id:sid,num:a.num,title:a.title,info:a.info,ord:ord++});
+  for(const h of a.shots)shots.push({id:(hMap.get(h)||{}).id||h.key,scene:sid,num:h.num,ord:ord++,action:h.action,sound:h.sound,notes:h.notes,scale:h.scale,montage:h.montage,tc:h.tc,img:h.img})}
+ const title=d.title||"Проект",CH=40,total=shots.length;let done=0;
+ const prog=()=>$("#ttl").textContent="Импорт "+Math.round(done/total*100)+"%";prog();
+ try{
+  for(let i=0;i<shots.length;i+=CH){const part=shots.slice(i,i+CH);
+   await call("import",{scenes:i===0?scenes:[],shots:part,last:i+CH>=shots.length,title});done+=part.length;prog()}
+  toast("Импортировано: "+scenes.length+" сцен, "+shots.length+" кадров"+(nImg?". Папку media с картинками загрузите в GitHub":""));
+ }catch(e){toast("Ошибка импорта: "+errText(e))}
+ await boot(true);
+ if(!S.bound)return;
+ const left=S.shots.filter(h=>!h.topic_id&&!isSnd(h)).length;
+ if(left&&await askYes("Создать в группе Telegram топики для остальных кадров ("+left+")?\nЭто займёт несколько минут: у Telegram есть ограничение на скорость."))topicsSheet()}
 async function importFile(f){
- let d;try{d=JSON.parse(await f.text())}catch(e){return toast("Не удалось прочитать файл")}
+ let d;try{const hd=new Uint8Array(await f.slice(0,4).arrayBuffer());
+  if(hd[0]===0x50&&hd[1]===0x4b){const z=await readZipEntry(f,n=>/\.(noemtoline|noemline)$/i.test(n)&&!/(^|\/)(__MACOSX|\._)/.test(n));if(!z)return toast("В архиве нет файла .noemtoline");d=JSON.parse(new TextDecoder().decode(z.buf).replace(/^\uFEFF/,""))}
+  else d=JSON.parse(await f.text())}catch(e){return toast("Не удалось прочитать файл")}
+ if(d&&(d.format==="noemtoline"||(Array.isArray(d.rows)&&!Array.isArray(d.dirRows))))return importLine(d);
  if(d.password){const p=await askText("Пароль проекта",true);if(p!==d.password)return toast("Неверный пароль")}
  if(!Array.isArray(d.dirRows))return toast("В файле нет раскадровки");
  const scenes=[],shots=[],rowOf={};let cur=null,ord=0,cnt=0;
@@ -291,7 +393,7 @@ const bar=(p,k)=>`<div class="bar"><i style="width:${p}%;--c:var(${stOf(k)[2]})"
 function tilesHtml(){const pj=S.project||{},t=(k,ic,n,on)=>`<button class="tile${on?"":" off"}" data-tile="${k}"><span class="ic">${ic}</span>${n}</button>`;
  return`<div class="tiles">${t("lit","📖","Лит сценарий",ghDoc()||pj.lit_file_id)}${t("dir","🎬","Реж. сценарий",ghDoc()||pj.dir_file_id)}${t("chars","👥","Персонажи",ghDoc()||pj.chars_file_id)}${t("anim","🎞","Аниматик",pj.anim_file_id)}${t("sound","🔊","Звук",true)}${t("folder","📁","Рабочая папка",pj.folder_url)}</div>`}
 function viewScenes(){const m=$("#main"),MG=manage(),SC=realScenes(),addBtn=MG?`<button class="btn" data-add="scene" style="margin-bottom:10px">＋ Добавить сцену</button>`:"";
- if(!SC.length){m.innerHTML=`<div class="wrap">${tilesHtml()}${addBtn}</div><div class="empty"><div class="big">0</div><p style="margin-top:8px">Проект ещё не загружен.</p>${S.me.owner?`<button class="btn" id="e1">Загрузить .noemocean</button>`:`<p>Режиссёр пока не загрузил проект.</p>`}</div>`;const b=$("#e1");if(b)b.onclick=()=>$("#file").click();return}
+ if(!SC.length){m.innerHTML=`<div class="wrap">${tilesHtml()}${addBtn}</div><div class="empty"><div class="big">0</div><p style="margin-top:8px">Проект ещё не загружен.</p>${S.me.owner?`<button class="btn" id="e1">Загрузить .noemtoline / .noemocean</button>`:`<p>Режиссёр пока не загрузил проект.</p>`}</div>`;const b=$("#e1");if(b)b.onclick=()=>$("#file").click();return}
  const V=vis().filter(h=>!isSnd(h)),all=V.length,pct=all?Math.round(V.reduce((s,h)=>s+(h.progress||0),0)/all):0,done=V.filter(h=>ACCEPTED.includes(h.status)).length,nt=S.shots.filter(h=>!h.topic_id&&!isSnd(h)).length;
  m.innerHTML=`<div class="wrap">${tilesHtml()}${showToggle()}${addBtn}<div class="card" style="display:block"><div class="row" style="justify-content:space-between"><span class="big">${pct}%</span><span class="sub">принято ${done} из ${all} кадров</span></div>${bar(pct,"work")}</div>`+
  (S.me.owner&&nt&&S.bound?`<div class="note">Кадров без топика в Telegram: ${nt}. <button class="chip" data-act="topics" style="--c:var(--acc)">Создать топики</button></div>`:"")+
@@ -382,9 +484,10 @@ function viewShot(id){const h=S.shots.find(x=>x.id===id),m=$("#main");if(!h){m.i
  pollOnce(true)}
 let headSig="";
 function paintHead(force){const h=S.shots.find(x=>x.id===S.curShot),hd=$("#hd");if(!h||!hd)return;
- const st=stOfShot(h),sig=JSON.stringify([st,S.stage,S.stages,h.assignees,h.topic_id,h.action,S.members.length,h.full_extra,h.cover,h.num]);if(!force&&sig===headSig)return;headSig=sig;
+ const st=stOfShot(h),sig=JSON.stringify([st,S.stage,S.stages,h.assignees,h.topic_id,h.action,S.members.length,h.full_extra,h.img_files,h.cover,h.num]);if(!force&&sig===headSig)return;headSig=sig;
  const ed=canEdit(h),cl=ed?"":" disabled";
- const xs=(h.full_extra||[]).filter(e=>e&&e.id),xr=xs.length?`<div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px">${xs.map(e=>`<span class="th" data-xf="${e.id}" style="width:150px;height:92px"></span>`).join("")}</div>`:"";
+ const fi=imgsOf(h),fx=h.full_extra||[],xl=[];for(let i=1;i<Math.max(fi.length,fx.length+1);i++){if(fi[i])xl.push({m:fi[i]});else if(fx[i-1]&&fx[i-1].id)xl.push({t:fx[i-1].id})}
+ const xr=xl.length?`<div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px">${xl.map(x=>x.m?`<span class="th" data-xm="${esc(x.m)}" style="width:150px;height:92px"></span>`:`<span class="th" data-xf="${esc(x.t)}" style="width:150px;height:92px"></span>`).join("")}</div>`:"";
  const sr=!isSnd(h)&&(S.stages.length||S.me.owner)?`<div class="seg" style="margin-top:10px">${S.stages.map(s=>`<button class="${s.id===S.stage?"on":""}" data-stage="${s.id}">${esc(s.name)}</button>`).join("")}${S.me.owner?`<button data-act="stages">⚙ Этапы</button>`:""}</div>`:"";
  hd.innerHTML=`<div class="row" style="align-items:flex-start">${isSnd(h)&&!h.cover?"":`<span class="th" data-th="${h.id}" style="width:150px;height:92px"></span>`}<span class="grow"><div class="sub" style="-webkit-line-clamp:4">${esc(h.action||"Без описания")}</div>${isSnd(h)&&h.notes?`<div class="sub">${esc(h.notes)}</div>`:""}<div class="sub">${[h.scale,h.montage,h.tc&&("хрон "+h.tc)].filter(Boolean).map(esc).join(" · ")}</div>${h.sound?`<div class="sub">♪ ${esc(h.sound)}</div>`:""}</span></div>
  ${xr}${sr}<div class="h2">Статус</div><div class="seg">${ST.map(s=>`<button class="${st.status===s[0]?"on":""}" style="--c:var(${s[2]})" data-st="${s[0]}"${cl}>${s[1]}</button>`).join("")}</div>
@@ -392,7 +495,7 @@ function paintHead(force){const h=S.shots.find(x=>x.id===S.curShot),hd=$("#hd");
  <div class="h2">Исполнители</div><div class="seg">${(h.assignees||[]).map(a=>`<span class="chip" style="--c:var(--acc)">${esc(nm(a))} · ${esc((mm(a)&&mm(a).role)||"")}</span>`).join("")||`<span class="sub">никого</span>`}${has("assign")?`<button class="chip" data-act="assign" style="--c:var(--acc)">＋ назначить</button>`:""}</div>`;
  const pr=$("#pr");pr.oninput=()=>$("#pv").textContent=pr.value;
  pr.onchange=()=>{const v=+pr.value;setShot(h,{progress:v,...(v===100?{status:"done"}:(st.status==="todo"&&v>0?{status:"work"}:{}))})};
- paintThumbs();ensureThumbs([h.id]);hd.querySelectorAll("[data-xf]").forEach(e=>fileBlob(e.dataset.xf).then(u=>{e.style.backgroundImage="url("+u+")"}).catch(()=>{}))}
+ paintThumbs();ensureThumbs([h.id]);hd.querySelectorAll("[data-xm]").forEach(e=>setBg(e,[mediaUrl(e.dataset.xm,true),mediaUrl(e.dataset.xm)]));hd.querySelectorAll("[data-xf]").forEach(e=>fileBlob(e.dataset.xf).then(u=>{e.style.backgroundImage="url("+u+")"}).catch(()=>{}))}
 function modeLine(){const e=$("#md");if(!e)return;const f=S.pendingFile;
  e.innerHTML=(S.fixMode?"Режим: правка":"")+(S.loud?" 🔔 Бот перешлёт исполнителям в личку.":"")+(f?` <span>Файл: ${esc(f.name)} (${fmtSize(f.size)})</span>${/^image\//.test(f.type)?`<button data-act="asfile">${S.asFile?"✓ без сжатия":"без сжатия"}</button>`:""}<button data-act="dropfile">убрать</button>`:"")}
 function setPicked(f){if(!f)return;if(f.size>50*1024*1024){toast(ERR.too_big);return}S.pendingFile=f;S.asFile=false;modeLine()}
@@ -407,7 +510,7 @@ function openLb(src,more){const l=document.createElement("div");l.className="lb"
  if(more)more().then(u=>{const x=l.querySelector("img");if(u&&x&&document.body.contains(l))x.src=u}).catch(()=>{})}
 function appSheet(){const pj=S.project||{},O=S.me.owner,T=O||has("tasks"),row=(id,t,sub)=>`<button class="card" id="${id}" style="width:100%;text-align:left"><span class="grow"><div class="t">${t}</div><div class="sub">${sub}</div></span></button>`;
  const acc=accHtml(row);const tog=T?`<label class="card" style="cursor:pointer;margin-top:10px"><input type="checkbox" id="mg" ${S.manage?"checked":""}><span class="grow"><div class="t">Режим управления задачами</div><div class="sub" style="-webkit-line-clamp:unset">Добавление, редактирование и удаление сцен, кадров и задач по звуку</div></span></label>`:"";
- const d=sheet(`<div class="h2" style="margin-top:0">Настройки</div>${O?`<button class="card" id="si" style="width:100%;text-align:left">⇪ Загрузить .noemocean</button>`+docRows(row,pj)+row("sa","🎞 Аниматик (видео до 50 МБ)",esc(pj.anim_name||"не загружен"))+`<div class="sub" style="-webkit-line-clamp:unset;margin:-4px 2px 10px">Видео больше 50 МБ отправьте в общий чат группы с подписью #аниматик, приложение подхватит его само.</div>`+row("sf","📁 Рабочая папка (ссылка)",esc(pj.folder_url||"не указана")):""}${acc}${tog}${T?"":`<div class="sub">Здесь пока нет настроек.</div>`}`);
+ const d=sheet(`<div class="h2" style="margin-top:0">Настройки</div>${O?`<button class="card" id="si" style="width:100%;text-align:left">⇪ Загрузить .noemtoline / .noemocean</button><div class="sub" style="-webkit-line-clamp:unset;margin:-4px 2px 10px">Из архива «Noem_Line» (Noem_ocean → Экспорт) загрузите сюда файл .noemtoline или сам архив .zip, а папку <b>media</b> положите в GitHub рядом с index.html: картинки кадров будут браться оттуда, а не из Telegram и Supabase.</div>`+docRows(row,pj)+row("sa","🎞 Аниматик (видео до 50 МБ)",esc(pj.anim_name||"не загружен"))+`<div class="sub" style="-webkit-line-clamp:unset;margin:-4px 2px 10px">Видео больше 50 МБ отправьте в общий чат группы с подписью #аниматик, приложение подхватит его само.</div>`+row("sf","📁 Рабочая папка (ссылка)",esc(pj.folder_url||"не указана")):""}${acc}${tog}${T?"":`<div class="sub">Здесь пока нет настроек.</div>`}`);
  const g=id=>d.querySelector(id),b=g("#si");if(b)b.onclick=()=>{d.remove();$("#file").click()};
  if(g("#sl"))g("#sl").onclick=()=>{d.remove();S.docKind="lit";$("#pdf").click()};
  if(g("#sd"))g("#sd").onclick=()=>{d.remove();S.docKind="dir";$("#pdf").click()};
@@ -528,7 +631,7 @@ async function editItem(kind,id){
  const F=snd?[["num","Номер задачи",h.num],["action","Название задачи",h.action],["notes","Описание",h.notes,1]]:[["num","Номер кадра",h.num],["action","Описание кадра",h.action,1],["sound","Звук",h.sound,1],["notes","Заметки",h.notes,1],["scale","План",h.scale],["montage","Монтаж",h.montage],["tc","Хронометраж",h.tc]];
  let cover;await ensureThumbs([h.id]);
  const d=sheet(`<div class="h2" style="margin-top:0">${snd?"Задача":"Кадр"} ${esc(h.num)}</div><div class="row" style="margin-bottom:6px"><span class="th" id="cv" style="width:120px;height:74px"></span><span class="grow"><button class="btn ghost sm" id="cvp">🖼 Обложка…</button> <button class="btn ghost sm" id="cvd">Убрать</button></span></div>${F.map(f=>`<div class="sub" style="margin-top:8px">${esc(f[1])}</div>${f[3]?`<textarea class="inp" data-k="${f[0]}" rows="3">${esc(f[2]||"")}</textarea>`:`<input class="inp" data-k="${f[0]}" value="${esc(f[2]||"")}">`}`).join("")}<div class="row" style="margin-top:14px"><button class="btn" id="eok">Сохранить</button><button class="btn ghost" id="eno">Отмена</button></div><input type="file" accept="image/*" id="cvf" hidden>`);
- const paint=()=>{const u=cover!==undefined?cover:S.thumbs[h.id];d.querySelector("#cv").style.backgroundImage=u?"url("+u+")":""};paint();
+ const paint=()=>{const u=cover!==undefined?cover:(thumbSrc(h.id)[0]||"");d.querySelector("#cv").style.backgroundImage=u?"url("+u+")":""};paint();
  d.querySelector("#cvp").onclick=()=>d.querySelector("#cvf").click();
  d.querySelector("#cvf").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{cover=await fileToThumb(f);paint()}catch(x){toast(errText(x))}};
  d.querySelector("#cvd").onclick=()=>{cover="";paint()};
@@ -560,7 +663,7 @@ function notifSheet(){const d=sheet(`<div class="row" style="justify-content:spa
   if(n.shot_id){d.remove();if(S.shots.some(h=>h.id===n.shot_id))go("shot-"+n.shot_id);else toast("Кадр больше не найден")}else paint()})}
 function shotSheet(){const h=S.shots.find(x=>x.id===S.curShot);if(!h)return;
  const own=S.me.owner||S.me.role==="Продюсер";
- const d=sheet(`<div class="h2" style="margin-top:0">Настройки кадра ${esc(h.num)}</div>${h.topic_id&&S.chat?`<button class="card" id="ot" style="width:100%;text-align:left">↗ Открыть топик в Telegram</button>`:`<div class="sub">Топик создастся при первом сообщении</div>`}${S.me.owner?`<button class="card" id="si" style="width:100%;text-align:left;margin-top:10px">⇪ Загрузить .noemocean</button>`:""}${own?"":`<label class="note" style="display:block;margin-top:12px"><input type="checkbox" id="sa2" ${S.showAll?"checked":""}> Показать задачи, на которые вы не назначены</label><div class="sub" style="-webkit-line-clamp:unset">Чат таких кадров можно читать, но писать в него и менять статус нельзя.</div>`}`);
+ const d=sheet(`<div class="h2" style="margin-top:0">Настройки кадра ${esc(h.num)}</div>${h.topic_id&&S.chat?`<button class="card" id="ot" style="width:100%;text-align:left">↗ Открыть топик в Telegram</button>`:`<div class="sub">Топик создастся при первом сообщении</div>`}${S.me.owner?`<button class="card" id="si" style="width:100%;text-align:left;margin-top:10px">⇪ Загрузить .noemtoline / .noemocean</button>`:""}${own?"":`<label class="note" style="display:block;margin-top:12px"><input type="checkbox" id="sa2" ${S.showAll?"checked":""}> Показать задачи, на которые вы не назначены</label><div class="sub" style="-webkit-line-clamp:unset">Чат таких кадров можно читать, но писать в него и менять статус нельзя.</div>`}`);
  const si=d.querySelector("#si");if(si)si.onclick=()=>{d.remove();$("#file").click()};const ot=d.querySelector("#ot");if(ot)ot.onclick=()=>{d.remove();openTg("https://t.me/c/"+S.chat+"/"+h.topic_id)};
  const sa=d.querySelector("#sa2");if(sa)sa.onchange=()=>{S.showAll=sa.checked}}
 async function sendMsg(){if(S.busy)return;const t=$("#tx").value.trim(),f=S.pendingFile;if(!t&&!f)return;
@@ -652,8 +755,9 @@ $("#main").onclick=e=>{const t=e.target;
  const o=t.closest("[data-open]");if(o){const h=S.shots.find(x=>x.id===S.curShot);return openTg("https://t.me/c/"+S.chat+"/"+o.dataset.open+"?thread="+h.topic_id)}
  const tm=t.closest("[data-tome]");if(tm){return call("send_to_me",{id:+tm.dataset.tome}).then(()=>toast("Отправлено вам в личку от бота")).catch(e=>toast(errText(e)))}
  const f=t.closest("[data-fx]");if(f&&has("fix"))return call("toggle_fix",{id:+f.dataset.fx}).then(()=>pollOnce(true)).catch(e=>toast(errText(e)));
+ const xm0=t.closest("#hd [data-xm]");if(xm0){openLb(mediaUrl(xm0.dataset.xm));return}
  const xf0=t.closest("#hd [data-xf]");if(xf0){fileBlob(xf0.dataset.xf).then(u=>openLb(u)).catch(e=>toast(errText(e)));return}
- const th0=t.closest("#hd .th");if(th0){const id=th0.dataset.th,u=S.thumbs[id],sh=S.shots.find(x=>x.id===id);if(u)openLb(u,sh&&sh.full_id?()=>fileBlob(sh.full_id):null);return}
+ const th0=t.closest("#hd .th");if(th0){const id=th0.dataset.th,u=S.thumbs[id],sh=S.shots.find(x=>x.id===id),gf=sh&&!sh.cover&&imgsOf(sh)[0];if(gf){openLb(mediaUrl(gf));return}if(u)openLb(u,sh&&sh.full_id?()=>fileBlob(sh.full_id):null);return}
  const im=t.closest(".msg img");if(im&&im.src){const l=document.createElement("div");l.className="lb";l.innerHTML=`<img src="${im.src}">`;l.onclick=()=>l.remove();document.body.append(l);
   const full=im.dataset.full;if(full&&full!==im.dataset.fid)fileBlob(full).then(u=>{const x=l.querySelector("img");if(x)x.src=u}).catch(()=>{})}};
 $("#foot").onclick=e=>{const a=e.target.closest("[data-act]");if(!a)return;
