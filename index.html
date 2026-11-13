@@ -289,7 +289,7 @@ addEventListener("hashchange",route);
 const chipH=k=>{const s=stOf(k);return`<span class="chip" style="--c:var(${s[2]})">${s[1]}</span>`};
 const bar=(p,k)=>`<div class="bar"><i style="width:${p}%;--c:var(${stOf(k)[2]})"></i></div>`;
 function tilesHtml(){const pj=S.project||{},t=(k,ic,n,on)=>`<button class="tile${on?"":" off"}" data-tile="${k}"><span class="ic">${ic}</span>${n}</button>`;
- return`<div class="tiles">${t("lit","📖","Лит сценарий",pj.lit_file_id)}${t("dir","🎬","Реж. сценарий",pj.dir_file_id)}${t("chars","👥","Персонажи",pj.chars_file_id)}${t("anim","🎞","Аниматик",pj.anim_file_id)}${t("sound","🔊","Звук",true)}${t("folder","📁","Рабочая папка",pj.folder_url)}</div>`}
+ return`<div class="tiles">${t("lit","📖","Лит сценарий",ghDoc()||pj.lit_file_id)}${t("dir","🎬","Реж. сценарий",ghDoc()||pj.dir_file_id)}${t("chars","👥","Персонажи",ghDoc()||pj.chars_file_id)}${t("anim","🎞","Аниматик",pj.anim_file_id)}${t("sound","🔊","Звук",true)}${t("folder","📁","Рабочая папка",pj.folder_url)}</div>`}
 function viewScenes(){const m=$("#main"),MG=manage(),SC=realScenes(),addBtn=MG?`<button class="btn" data-add="scene" style="margin-bottom:10px">＋ Добавить сцену</button>`:"";
  if(!SC.length){m.innerHTML=`<div class="wrap">${tilesHtml()}${addBtn}</div><div class="empty"><div class="big">0</div><p style="margin-top:8px">Проект ещё не загружен.</p>${S.me.owner?`<button class="btn" id="e1">Загрузить .noemocean</button>`:`<p>Режиссёр пока не загрузил проект.</p>`}</div>`;const b=$("#e1");if(b)b.onclick=()=>$("#file").click();return}
  const V=vis().filter(h=>!isSnd(h)),all=V.length,pct=all?Math.round(V.reduce((s,h)=>s+(h.progress||0),0)/all):0,done=V.filter(h=>ACCEPTED.includes(h.status)).length,nt=S.shots.filter(h=>!h.topic_id&&!isSnd(h)).length;
@@ -407,14 +407,14 @@ function openLb(src,more){const l=document.createElement("div");l.className="lb"
  if(more)more().then(u=>{const x=l.querySelector("img");if(u&&x&&document.body.contains(l))x.src=u}).catch(()=>{})}
 function appSheet(){const pj=S.project||{},O=S.me.owner,T=O||has("tasks"),row=(id,t,sub)=>`<button class="card" id="${id}" style="width:100%;text-align:left"><span class="grow"><div class="t">${t}</div><div class="sub">${sub}</div></span></button>`;
  const acc=accHtml(row);const tog=T?`<label class="card" style="cursor:pointer;margin-top:10px"><input type="checkbox" id="mg" ${S.manage?"checked":""}><span class="grow"><div class="t">Режим управления задачами</div><div class="sub" style="-webkit-line-clamp:unset">Добавление, редактирование и удаление сцен, кадров и задач по звуку</div></span></label>`:"";
- const d=sheet(`<div class="h2" style="margin-top:0">Настройки</div>${O?`<button class="card" id="si" style="width:100%;text-align:left">⇪ Загрузить .noemocean</button>`+row("sl","📖 Лит сценарий (PDF)",esc(pj.lit_name||"не загружен"))+row("sd","🎬 Реж. сценарий (PDF)",esc(pj.dir_name||"не загружен"))+row("sc","👥 Персонажи (PDF)",esc(pj.chars_name||"не загружен"))+row("sa","🎞 Аниматик (видео до 50 МБ)",esc(pj.anim_name||"не загружен"))+`<div class="sub" style="-webkit-line-clamp:unset;margin:-4px 2px 10px">Видео больше 50 МБ отправьте в общий чат группы с подписью #аниматик, приложение подхватит его само.</div>`+row("sf","📁 Рабочая папка (ссылка)",esc(pj.folder_url||"не указана")):""}${acc}${tog}${T?"":`<div class="sub">Здесь пока нет настроек.</div>`}`);
+ const d=sheet(`<div class="h2" style="margin-top:0">Настройки</div>${O?`<button class="card" id="si" style="width:100%;text-align:left">⇪ Загрузить .noemocean</button>`+docRows(row,pj)+row("sa","🎞 Аниматик (видео до 50 МБ)",esc(pj.anim_name||"не загружен"))+`<div class="sub" style="-webkit-line-clamp:unset;margin:-4px 2px 10px">Видео больше 50 МБ отправьте в общий чат группы с подписью #аниматик, приложение подхватит его само.</div>`+row("sf","📁 Рабочая папка (ссылка)",esc(pj.folder_url||"не указана")):""}${acc}${tog}${T?"":`<div class="sub">Здесь пока нет настроек.</div>`}`);
  const g=id=>d.querySelector(id),b=g("#si");if(b)b.onclick=()=>{d.remove();$("#file").click()};
  if(g("#sl"))g("#sl").onclick=()=>{d.remove();S.docKind="lit";$("#pdf").click()};
  if(g("#sd"))g("#sd").onclick=()=>{d.remove();S.docKind="dir";$("#pdf").click()};
  if(g("#sc"))g("#sc").onclick=()=>{d.remove();S.docKind="chars";$("#pdf").click()};
  if(g("#sa"))g("#sa").onclick=()=>{d.remove();$("#vid").click()};
  if(g("#mg"))g("#mg").onchange=e=>{S.manage=e.target.checked;try{localStorage.setItem("noem_manage",S.manage?"1":"0")}catch(x){}route();toast(S.manage?"Режим управления задачами включён":"Режим выключен")};
- accHandlers(d,g);
+ accHandlers(d,g);docHandlers(d,g);
 if(g("#sf"))g("#sf").onclick=async()=>{d.remove();const u=await askText("Ссылка на рабочую папку (пусто — убрать)",false,pj.folder_url||"");if(u===null)return;
   try{const r=await call("set_folder",{url:u});S.project=r.project;toast(r.project.folder_url?"Ссылка сохранена":"Ссылка убрана");if(parse()[0]==="scenes")route()}catch(e){toast(errText(e))}}}
 async function uploadDoc(f,kind){if(!f)return;if(f.size>20*1024*1024)return toast(ERR.pdf_big);
@@ -425,16 +425,23 @@ async function uploadAnim(f){if(!f)return;if(f.size>50*1024*1024)return toast(ER
 $("#vid").onchange=e=>{const f=e.target.files[0];e.target.value="";uploadAnim(f)};
 /* ---------- просмотр PDF прямо в приложении: масштаб, щипок, двойной тап ---------- */
 const DOCN={lit:"Лит сценарий",dir:"Реж. сценарий",chars:"Персонажи"};
+/* PDF из GitHub: папка media рядом с index.html */
+const DOCF={lit:"script",dir:"director_exp",chars:"chars"},ghDoc=()=>(S.project||{}).doc_mode==="github",docUrl=k=>new URL("media/"+DOCF[k]+".pdf",location.href).href;
+function docRows(row,pj){const gh=ghDoc();
+ const seg=`<div class="h2" style="margin-top:12px">Где хранить PDF (сценарии, персонажи)</div><div class="seg"><button id="dm_gh" class="${gh?"on":""}">GitHub (экономнее)</button><button id="dm_direct" class="${gh?"":"on"}">Напрямую (затратнее)</button></div>`;
+ if(!gh)return seg+row("sl","📖 Лит сценарий (PDF)",esc(pj.lit_name||"не загружен"))+row("sd","🎬 Реж. сценарий (PDF)",esc(pj.dir_name||"не загружен"))+row("sc","👥 Персонажи (PDF)",esc(pj.chars_name||"не загружен"));
+ return seg+`<div class="note" style="margin-top:10px"><b>Как загрузить PDF через GitHub</b><br>Откройте репозиторий проекта на github.com. В папке <b>media</b> (рядом с index.html; если папки нет, создайте её) нажмите Add file → Upload files и загрузите файлы с точно такими именами:<br>• <b>media/script.pdf</b> — Лит сценарий<br>• <b>media/director_exp.pdf</b> — Реж. сценарий<br>• <b>media/chars.pdf</b> — Библия персонажей<br>Нажмите Commit changes. Чтобы заменить файл, загрузите новый с тем же именем. Обновление появится у всех через 1–2 минуты (когда GitHub Pages опубликует сайт).</div>`}
+function docHandlers(d,g){["gh","direct"].forEach(m=>{const b=g("#dm_"+m);if(b)b.onclick=async()=>{if((m==="github")===ghDoc())return;try{const r=await call("set_doc_mode",{mode:m});S.project=r.project;d.remove();route();appSheet();toast(m==="github"?"PDF берутся из GitHub":"PDF загружаются напрямую")}catch(e){toast(errText(e))}}})}
 let docTok=0;
-async function viewDoc(kind){const m=$("#main"),tok=++docTok,pj=S.project||{},id=pj[kind+"_file_id"];
+async function viewDoc(kind){const m=$("#main"),tok=++docTok,pj=S.project||{},id=ghDoc()&&DOCF[kind]?"gh":pj[kind+"_file_id"];
  $("#ttl").textContent=DOCN[kind]||"Документ";
  if(!id){m.innerHTML=`<div class="empty">Пока не доступно</div>`;return}
- m.innerHTML=`<div class="pdfbar"><button class="ib" id="zo" title="Уменьшить">−</button><button class="zl" id="zl" title="По ширине экрана">100%</button><button class="ib" id="zi" title="Увеличить">＋</button><span class="sub grow" id="dp" style="text-align:center;cursor:pointer">Загрузка…</span><button class="btn ghost sm" data-doctome="${esc(kind)}">📥 в личку</button></div><div class="pdfv" id="pv"><div id="pages"></div></div>`;
+ m.innerHTML=`<div class="pdfbar"><button class="ib" id="zo" title="Уменьшить">−</button><button class="zl" id="zl" title="По ширине экрана">100%</button><button class="ib" id="zi" title="Увеличить">＋</button><span class="sub grow" id="dp" style="text-align:center;cursor:pointer">Загрузка…</span>${id==="gh"?`<button class="btn ghost sm" data-ghdl="${esc(kind)}">📥 скачать</button>`:`<button class="btn ghost sm" data-doctome="${esc(kind)}">📥 в личку</button>`}</div><div class="pdfv" id="pv"><div id="pages"></div></div>`;
  const say=t=>{const e=$("#dp");if(e)e.textContent=t};
  try{
   if(!window.pdfjsLib)throw new Error("Не загрузился просмотрщик PDF. Откройте файл через «в личку».");
   pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-  const url=await fileBlob(id),buf=await (await fetch(url)).arrayBuffer();if(tok!==docTok)return;
+  let buf;if(id==="gh"){const r=await fetch(docUrl(kind),{cache:"no-cache"});if(!r.ok)throw new Error("Файл media/"+DOCF[kind]+".pdf не найден в GitHub: режиссёр ещё не загрузил его или сайт обновляется.");buf=await r.arrayBuffer()}else{const url=await fileBlob(id);buf=await (await fetch(url)).arrayBuffer()}if(tok!==docTok)return;
   const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf),cMapUrl:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",cMapPacked:true}).promise;
   const pv=$("#pv"),box=$("#pages"),zl=$("#zl");if(!pv||!box||tok!==docTok)return;
   const N=pdf.numPages,pages=[];let z=pv.clientWidth<560?1.5:1,cur=1,rt=0;
@@ -628,12 +635,13 @@ $("#main").onclick=e=>{const t=e.target;
  const tl=t.closest("[data-tile]");if(tl){const k=tl.dataset.tile,pj=S.project||{};
   if(k==="folder"){if(!pj.folder_url)return toast("Пока не доступно");return openLink(pj.folder_url)}
   if(k==="sound")return go("sound");
-  if(!pj[k+"_file_id"])return toast("Пока не доступно");return go(k==="anim"?"anim":"doc-"+k)}
+  if(!(DOCF[k]&&ghDoc())&&!pj[k+"_file_id"])return toast("Пока не доступно");return go(k==="anim"?"anim":"doc-"+k)}
  const ad=t.closest("[data-add]");if(ad){const k=ad.dataset.add;if(k==="scene")return addScene();if(k==="shot")return addShot(parse()[1]);if(k==="snd")return addSound()}
  const ed=t.closest("[data-ed]");if(ed){const i=ed.dataset.ed.indexOf(":");return editItem(ed.dataset.ed.slice(0,i),ed.dataset.ed.slice(i+1))}
   const rm=t.closest("[data-rm]");if(rm){const i=rm.dataset.rm.indexOf(":");return rmItem(rm.dataset.rm.slice(0,i),rm.dataset.rm.slice(i+1))}
  const oa=t.closest("[data-open-anim]");if(oa){const pj=S.project||{};return openTg("https://t.me/c/"+S.chat+"/"+pj.anim_msg)}
- const dt=t.closest("[data-doctome]");if(dt){return call("send_doc_to_me",{kind:dt.dataset.doctome}).then(()=>toast("Отправлено вам в личку от бота")).catch(e=>toast(errText(e)))}
+ const gd=t.closest("[data-ghdl]");if(gd)return openLink(docUrl(gd.dataset.ghdl));
+  const dt=t.closest("[data-doctome]");if(dt){return call("send_doc_to_me",{kind:dt.dataset.doctome}).then(()=>toast("Отправлено вам в личку от бота")).catch(e=>toast(errText(e)))}
  const mb=t.closest("[data-member]");if(mb){const p=mm(+mb.dataset.member);if(p)memberSheet(p);return}
  const sb=t.closest("[data-stage]");if(sb){const mn=$("#main"),y=mn.scrollTop;S.stage=+sb.dataset.stage;S.sel=new Set();updSel();headSig="";paintHead(true);renderChat(false);mn.scrollTop=y;return}
  const g=t.closest("[data-go]");if(g)return go(g.dataset.go);
