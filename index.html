@@ -238,6 +238,7 @@ textarea.inp{resize:vertical}
 .mp button{display:block;width:100%;text-align:left;padding:8px 6px;border-radius:8px}
 .mp button:hover{background:var(--bubble)}
 .msg{position:relative}
+.msg.swp::after{content:"↩ ответить";position:absolute;left:100%;top:50%;transform:translateY(-50%);margin-left:12px;font-size:12px;color:var(--acc);white-space:nowrap}
 .rpl{display:none;position:absolute;top:2px;right:4px;font-size:15px;color:var(--mute);padding:0 4px}
 @media (hover:hover) and (pointer:fine){.msg:hover .rpl{display:block}}
 </style>
@@ -527,7 +528,7 @@ function topicsSheet(){
 
 /* ---------- маршруты ---------- */
 function go(h){location.hash=h}
-function parse(){const h=location.hash.slice(1)||"scenes",i=h.indexOf("-");return i<0?[h,""]:[h.slice(0,i),h.slice(i+1)]}
+function parse(){const h=(location.hash.slice(1)||"scenes").split("&")[0],i=h.indexOf("-");return i<0?[h,""]:[h.slice(0,i),h.slice(i+1)]}
 function route(){if(!S.me)return;const[v,id]=parse();if(smOff&&v!=="fin"){smOff();smOff=null}
  const sub=isSub(v);$("#main").classList.toggle("pdfmode",v==="doc");$("#back").hidden=NATIVE_BACK||!sub;$("#cfg").hidden=!cfgOn(v);$("#bell").hidden=false;updBell();$("#nav").hidden=v==="shot"||v==="doc"||v==="fin"||v==="kpp";
  if(NATIVE_BACK){sub?TGW.BackButton.show():TGW.BackButton.hide()}
@@ -593,8 +594,12 @@ $("#hx").onclick=()=>{S.sel=new Set();updSel()};$("#hpin").onclick=()=>bulkOp("p
  ch.addEventListener("touchstart",e=>{const m=e.target.closest("[data-mid]");if(!m||e.touches.length>1)return;const id=+m.dataset.mid;clearTimeout(lpT);lpT=setTimeout(()=>{lpAt=Date.now();selToggle(id,"add");navigator.vibrate&&navigator.vibrate(15)},450)},{passive:true});
  ["touchmove","touchend","touchcancel"].forEach(ev=>ch.addEventListener(ev,()=>clearTimeout(lpT),{passive:true}));
  let sw=null;
- ch.addEventListener("touchstart",e=>{const m=e.target.closest("[data-mid]");sw=m&&e.touches.length===1?{id:+m.dataset.mid,x:e.touches[0].clientX,y:e.touches[0].clientY}:null},{passive:true});
- ch.addEventListener("touchend",e=>{if(!sw)return;const t=e.changedTouches[0],dx=t.clientX-sw.x,dy=t.clientY-sw.y,id=sw.id;sw=null;if(dx<-60&&Math.abs(dx)>Math.abs(dy)*2&&!S.sel.size){swAt=Date.now();setReply(id)}},{passive:true});
+ ch.addEventListener("touchstart",e=>{const m=e.target.closest("[data-mid]");sw=m&&e.touches.length===1?{el:m,id:+m.dataset.mid,x:e.touches[0].clientX,y:e.touches[0].clientY}:null},{passive:true});
+ ch.addEventListener("touchmove",e=>{if(!sw||S.sel.size)return;const t=e.touches[0],dx=t.clientX-sw.x,dy=t.clientY-sw.y;if(sw.on||(dx<-12&&Math.abs(dx)>Math.abs(dy)*1.5)){sw.on=true;sw.el.style.transition="none";sw.el.style.transform="translateX("+Math.max(dx,-90)+"px)";sw.el.classList.toggle("swp",dx<-8)}},{passive:true});
+ const swEnd=e=>{if(!sw)return;const s=sw,t=e.changedTouches&&e.changedTouches[0],dx=t?t.clientX-s.x:0,dy=t?t.clientY-s.y:0;sw=null;
+  if(s.on){swAt=Date.now();s.el.style.transition="transform .2s";s.el.style.transform="";s.el.classList.remove("swp");setTimeout(()=>{s.el.style.transition=""},250)}
+  if(e.type==="touchend"&&dx<-60&&Math.abs(dx)>Math.abs(dy)*2&&!S.sel.size){swAt=Date.now();setReply(s.id)}};
+ ch.addEventListener("touchend",swEnd,{passive:true});ch.addEventListener("touchcancel",swEnd,{passive:true});
  ch.addEventListener("click",e=>{const m=e.target.closest("[data-mid]");if(!m)return;if(Date.now()-lpAt<900){e.stopPropagation();e.preventDefault();return}
   if(S.sel.size){e.stopPropagation();e.preventDefault();selToggle(+m.dataset.mid)}else if(Date.now()-swAt>400&&!e.target.closest("button,img,a,.file,.rq"))openReact(+m.dataset.mid,m)},true)})();
 function scenesAssignSheet(p){const sc=[...S.scenes].sort((a,b)=>(a.ord||0)-(b.ord||0)),sel=new Set(),open=new Set();
@@ -656,6 +661,7 @@ function paintHead(force){const h=S.shots.find(x=>x.id===S.curShot),hd=$("#hd");
 function modeLine(){const e=$("#md");if(!e)return;const f=S.pendingFile;
  e.innerHTML=(S.replyTo?replyLine():"")+(S.fixMode?"Режим: правка":"")+(S.loud?" 🔔 Громко: уведомление и личка только отмеченным через @.":"")+(f?` <span>Файл: ${esc(f.name)} (${fmtSize(f.size)})</span>${/^image\//.test(f.type)?`<button data-act="asfile">${S.asFile?"✓ без сжатия":"без сжатия"}</button>`:""}<button data-act="dropfile">убрать</button>`:"")}
 function setPicked(f){if(!f)return;if(f.size>50*1024*1024){toast(ERR.too_big);return}S.pendingFile=f;S.asFile=false;modeLine()}
+const roleOf=id=>{const p=mm(id),r=p&&(p.is_owner?"Режиссёр":p.role);return r?" ("+esc(r)+")":""};
 const RX=["👍","👌","❤️","🔥","👎","🐢","🌻"];
 const snip2=x=>{const t=(x.text||(x.file_name?"📎 "+x.file_name:"")).replace(/\s+/g," ").trim();return t.length>50?t.slice(0,50)+"…":t};
 function closeRx(){document.querySelectorAll(".rx").forEach(e=>e.remove())}
@@ -871,8 +877,8 @@ function renderChat(forceStick){const c=$("#chat");if(!c)return;const main=$("#m
  c.innerHTML=list.length?list.map(x=>{const mine=x.by_id===S.me.id;
   const tg=x.kind==="version"?`<span class="tag">v${vn[x.id]}</span>`:x.kind==="fix"?`<span class="tag ${x.done?"done":"fix"}" data-fx="${x.id}">${x.done?"исправлено":"правка"}</span>`:"";
   const ac="";
-  return`<div class="msg${mine?" me":""}${S.sel.has(x.id)?" sel":""}" data-mid="${x.id}"><div class="who">${esc(x.by_name||"Участник")} · ${new Date(x.ts).toLocaleString("ru",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>${$("#tx")?`<button class="rpl" data-reply="${x.id}" title="Ответить">↩</button>`:""}${x.fwd_from?`<div class="fwd">↪ ${esc(x.fwd_from)}</div>`:""}${quoteHtml(x)}${tg}${mediaHtml(x,sh)}${txtHtml(x)}${ac}${rxHtml(x)}</div>`}).join(""):`<div class="sub">Сообщений пока нет. Пишите здесь или прямо в топике в Telegram: всё попадёт сюда.</div>`;
- const pn=$("#pn");if(pn){const ps=list.filter(x=>x.pinned);pn.innerHTML=ps.length?`<div class="h2">📌 Закреплено</div>`+ps.map(x=>`<div class="msg${S.sel.has(x.id)?" sel":""}" data-mid="${x.id}" style="max-width:100%;border-left:3px solid var(--acc)"><div class="who">${esc(x.by_name||"Участник")}</div>${x.file_id?`<div class="sub">📎 ${esc(x.file_name||"файл")}</div>`:""}${x.text?`<div class="sub" style="-webkit-line-clamp:4;color:var(--ink)">${esc(x.text)}</div>`:""}</div>`).join(""):""}
+  return`<div class="msg${mine?" me":""}${S.sel.has(x.id)?" sel":""}" data-mid="${x.id}"><div class="who">${esc(x.by_name||"Участник")}${roleOf(x.by_id)} · ${new Date(x.ts).toLocaleString("ru",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>${$("#tx")?`<button class="rpl" data-reply="${x.id}" title="Ответить">↩</button>`:""}${x.fwd_from?`<div class="fwd">↪ ${esc(x.fwd_from)}</div>`:""}${quoteHtml(x)}${tg}${mediaHtml(x,sh)}${txtHtml(x)}${ac}${rxHtml(x)}</div>`}).join(""):`<div class="sub">Сообщений пока нет. Пишите здесь или прямо в топике в Telegram: всё попадёт сюда.</div>`;
+ const pn=$("#pn");if(pn){const ps=list.filter(x=>x.pinned);pn.innerHTML=ps.length?`<div class="h2">📌 Закреплено</div>`+ps.map(x=>`<div class="msg${S.sel.has(x.id)?" sel":""}" data-mid="${x.id}" style="max-width:100%;border-left:3px solid var(--acc)"><div class="who">${esc(x.by_name||"Участник")}${roleOf(x.by_id)}</div>${x.file_id?`<div class="sub">📎 ${esc(x.file_name||"файл")}</div>`:""}${x.text?`<div class="sub" style="-webkit-line-clamp:4;color:var(--ink)">${esc(x.text)}</div>`:""}</div>`).join(""):""}
  const lv=$("#lv");if(lv){const vs=list.filter(x=>x.kind==="version"&&x.file_id),last=vs[vs.length-1];lv.innerHTML=last?`<div class="h2">Последний вариант · v${vn[last.id]}</div><div class="msg" style="max-width:100%">${mediaHtml(last,sh)}</div>`:""}
  document.querySelectorAll("#lv img[data-fid], #chat img[data-fid]").forEach(im=>fileBlob(im.dataset.fid).then(u=>{im.src=u}).catch(()=>{im.replaceWith(Object.assign(document.createElement("div"),{className:"sub",textContent:"Превью недоступно"}))}));
  if(stick)main.scrollTop=main.scrollHeight}
@@ -1044,7 +1050,7 @@ async function boot(again){
  if(!S.bound&&S.me.owner){$("#nav").hidden=false;$("#cfg").hidden=false;
   $("#main").innerHTML=`<div class="wrap"><div class="note"><b>Осталось привязать группу.</b><br>Откройте вашу группу с темами и отправьте в ней команду <b>/bind</b>. Бот ответит, что группа привязана и каких прав ему не хватает. Потом нажмите «Проверить».</div><button class="btn" onclick="boot()">Проверить</button></div>`;return}
  if(!S.me.owner&&!S.me.role&&!document.querySelector(".sheet"))roleSheet();
- route();if(!again){schedule();rtStart()}}
+ route();if(!again){schedule();rtStart();const qs=new URLSearchParams(location.search).get("shot");if(qs&&S.shots.some(x=>x.id===qs)){history.replaceState(null,"",location.pathname+location.hash);go("shot-"+qs)}}}
 /* ===================== БЭКАП: экспорт, загрузка, офлайн ===================== */
 const canBk=()=>!!S.me&&!S.off&&(S.me.owner||has("export")),canDel=()=>!!S.me&&!S.off&&(S.me.owner||has("del_users"));
 const BK_OPTS=[["chat","Чаты (тексты сообщений)"],["db","База данных (сцены, кадры, статусы, исполнители, должности, права)"],["docs","Лит. и реж. сценарии, библия персонажей (PDF)"],["sb","Изначальная раскадровка из .noemocean"],["img","Картинки из чатов"],["vid","Видео из чатов"],["oth","Другие файлы из чатов"]];
@@ -1088,11 +1094,11 @@ async function bkExport(){
   const Z=ZipW(),M={format:"noemline-backup",v:1,created:Date.now(),opts:o},files={},gh={},thumbs={},docs={},skipped=[],tasks=[];
   const core=await call("export_data",{part:"core"});
   M.title=(core.project&&core.project.title)||"";
-  if(o.db)Object.assign(M,{project:core.project,scenes:core.scenes,shots:core.shots,shot_stages:core.shot_stages,stages:core.stages,roles:core.roles,members:core.members});
+  if(o.db)Object.assign(M,{project:core.project,scenes:core.scenes,shots:core.shots,shot_stages:core.shot_stages.filter(x=>core.stages.some(s=>s.id===x.stage_id)),stages:core.stages,roles:core.roles,members:core.members});
   const scn=Object.fromEntries(core.scenes.map(s=>[s.id,s])),used=new Set(),fold={};
   for(const h of core.shots){let n=h.scene===SND?"Звук "+safeN(h.num):"Сц "+safeN((scn[h.scene]||{}).num||"?")+" · Кадр "+safeN(h.num),b=n,i=2;while(used.has(n))n=b+" ("+i++ +")";used.add(n);fold[h.id]="media/"+n}
   let msgs=[];
-  if(o.chat){let after=0;for(;;){say("Чаты: "+msgs.length);const r=await call("export_data",{part:"msgs",after});msgs=msgs.concat(r.rows);if(r.rows.length<1000)break;after=r.rows[r.rows.length-1].id}M.messages=msgs}
+  if(o.chat){let after=0;for(;;){say("Чаты: "+msgs.length);const r=await call("export_data",{part:"msgs",after});msgs=msgs.concat(r.rows.filter(x=>!x.deleted));if(r.rows.length<1000)break;after=r.rows[r.rows.length-1].id}M.messages=msgs}
   const tgGet=async id=>{const r=await fetch(API,{method:"POST",headers:{"content-type":"application/json",...AH()},body:JSON.stringify({action:"file",file_id:id})});if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||"HTTP "+r.status)}return r.blob()};
   const webGet=async u=>{const r=await fetch(u);if(!r.ok)throw new Error("HTTP "+r.status);return r.blob()};
   for(const x of msgs){const c=catOf(x);if(!c||!o[c])continue;const p=(fold[x.shot_id]||"media/_без кадра")+"/chat/"+(c==="img"?"images":c==="vid"?"videos":"files")+"/"+x.id+"_"+safeN(x.file_name);
