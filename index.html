@@ -128,7 +128,7 @@ const NATIVE_BACK = !!(TGW && TGW.BackButton && TGW.isVersionAtLeast && TGW.isVe
 
 const ST = [["todo","Не начат","--s0"],["work","В работе","--s1"],["review","На проверке","--s2"],["fix","Правки","--s3"],["done","Принят","--s4"],["ship","Отгрузить","--s5"],["shipped","Отгружен","--s6"],["finished","Завершён","--s7"],["error","Ошибка","--s8"]];
 const ACCEPTED=["done","ship","shipped","finished"];
-const PERM_L=[["assign","Назначать и снимать с задачи"],["fix","Выдавать правки"],["status","Менять любые статусы"],["invite","Приглашать в группу"],["del_any","Удалять любые сообщения"],["pin_any","Закреплять любые сообщения"],["tasks","Управление задачами (сцены, кадры, звук)"],["loud","Громкие сообщения (бот пересылает исполнителю в личку)"]];
+const PERM_L=[["assign","Назначать и снимать с задачи"],["fix","Выдавать правки"],["status","Менять любые статусы"],["invite","Приглашать в группу"],["del_any","Удалять любые сообщения"],["pin_any","Закреплять любые сообщения"],["tasks","Управление задачами (сцены, кадры, звук)"],["loud","Громкие сообщения (бот пересылает исполнителю в личку)"],["export","Экспорт и загрузка бэкапа проекта"],["del_users","Удалять и возвращать пользователей"]];
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const S = { stages:[], ss:{}, stage:null, roles:[], showAll:false, me:null, scenes:[], shots:[], members:[], project:null, chat:null, bound:false, thumbs:{}, msgs:[],
@@ -140,11 +140,12 @@ function toast(t){const e=document.createElement("div");e.className="toast";e.te
 
 /* ---------- сеть ---------- */
 async function call(action, data){
+  if(S.off)return offCall(action,data||{});
   const r = await fetch(API, {method:"POST", headers:{"content-type":"application/json",...AH()}, body:JSON.stringify({action, cid:CID, ...data})});
   return handle(r);
 }
 async function handle(r){
-  if(!r.ok){let e={};try{e=await r.json()}catch(x){}const er=new Error(e.error||("HTTP "+r.status));er.code=e.error;er.status=r.status;throw er}
+  if(!r.ok){let e={};try{e=await r.json()}catch(x){}if(e.error==="deleted")fatal(`Ваш аккаунт удалён из Noem.line.<br><span class="sub">Обратитесь к режиссёру.</span>`);const er=new Error(e.error||("HTTP "+r.status));er.code=e.error;er.status=r.status;throw er}
   return r.json();
 }
 const ERR = {pdf_big:"PDF больше 20 МБ: Telegram не даёт приложению скачивать такие файлы", not_pdf:"Нужен файл в формате PDF", bad_url:"Ссылка должна начинаться с http:// или https://", too_big:"Файл больше 50 МБ. Отправьте его прямо в топик в Telegram.", forbidden:"Нет прав на это действие", start_bot:"Сначала нажмите Start в чате с ботом", empty:"Пустое сообщение", anim_big:"Видео больше 50 МБ: отправьте его в общий чат группы с подписью #аниматик", not_video:"Нужен видеофайл (.mp4)"};
@@ -152,6 +153,7 @@ const errText = e => ERR[e.code] || e.message || "Ошибка";
 Object.assign(ERR,{bad_invite:"Ссылка недействительна или уже использована",login_taken:"Такой логин уже занят",bad_login:"Логин: 3–32 символа, латиница, цифры, _ . -",bad_password:"Пароль должен быть от 6 символов",bad_creds:"Неверный логин или пароль",locked:"Слишком много попыток. Подождите 10 минут",no_assignees:"Сначала назначьте исполнителя на кадр",already_linked:"Этот аккаунт уже привязан",bad_cover:"Не удалось сохранить обложку"});
 const blobCache = new Map();
 function fileBlob(id){
+  if(S.off){const u=offUrl(S.off.files[id]);return u?Promise.resolve(u):Promise.reject(Object.assign(new Error("Файла нет в бэкапе"),{code:"nofile"}))}
   if(!blobCache.has(id)){
     blobCache.set(id, fetch(API,{method:"POST",headers:{"content-type":"application/json",...AH()},body:JSON.stringify({action:"file",file_id:id})})
       .then(async r=>{if(!r.ok){const e=await r.json().catch(()=>({}));const er=new Error(e.error||"HTTP "+r.status);er.code=e.error;throw er}return URL.createObjectURL(await r.blob())})
@@ -171,14 +173,15 @@ const manage=()=>!!S.manage&&!!S.me&&!!(S.me.owner||(S.me.perms||[]).includes("t
 const cfgOn=v=>v==="shot"||!!S.me.owner||has("tasks");
 const isSub=v=>["scene","shot","doc","anim","sound"].includes(v);
 const shotTitle=h=>(isSnd(h)?"Задача ":"Кадр ")+h.num;
-const seeAll=()=>S.me.owner||S.me.role==="Продюсер"||S.showAll||manage();
+const noUn=()=>!S.me.owner&&(S.me.perms||[]).includes("hide_unassigned");
+const seeAll=()=>!!S.off||S.me.owner||manage()||(!noUn()&&(S.me.role==="Продюсер"||S.showAll));
 const mine=h=>(h.assignees||[]).includes(S.me.id);
 const vis=()=>seeAll()?S.shots:S.shots.filter(mine);
 const canEdit=h=>S.me.owner||mine(h)||has("status");
 const fixStage=()=>{if(isSnd(S.shots.find(x=>x.id===S.curShot))){S.stage=null;return}if(!S.stages.some(s=>s.id===S.stage))S.stage=S.stages[0]?S.stages[0].id:null};
 const stOfShot=h=>S.stage?(S.ss[S.stage]||(S.stage===h.cur_stage?{status:h.status||"todo",progress:h.progress||0}:{status:"todo",progress:0})):{status:h.status||"todo",progress:h.progress||0};
 const msgStage=x=>S.stages.some(s=>s.id===x.stage_id)?x.stage_id:(S.stages[0]?S.stages[0].id:null);
-const showToggle=()=>S.me.owner||S.me.role==="Продюсер"||manage()?"":`<label class="note" style="display:block"><input type="checkbox" data-showall ${S.showAll?"checked":""}> Показать задачи, на которые вы не назначены</label>`;
+const showToggle=()=>S.me.owner||S.me.role==="Продюсер"||manage()||noUn()||S.off?"":`<label class="note" style="display:block"><input type="checkbox" data-showall ${S.showAll?"checked":""}> Показать задачи, на которые вы не назначены</label>`;
 function sceneAgg(id){const a=shotsOf(id);if(!a.length)return{pct:0,st:"todo",n:0};
  const pct=Math.round(a.reduce((s,h)=>s+(h.progress||0),0)/a.length),k=a.map(h=>h.status||"todo"),has=x=>k.includes(x);
  const st=k.every(x=>x===k[0])?k[0]:has("error")?"error":has("fix")?"fix":has("work")?"work":has("review")?"review":"work";
@@ -190,7 +193,7 @@ function mergeMsgs(rows){for(const r of rows){const i=S.msgs.findIndex(x=>x.id==
  S.msgs.sort((a,b)=>a.id-b.id);S.sinceMsgs=maxU(rows,S.sinceMsgs)}
 /* картинки кадров из GitHub: папка media рядом с index.html; миниатюры лежат в media/thumbs */
 const imgsOf=h=>Array.isArray(h&&h.img_files)?h.img_files:[];
-const mediaUrl=(f,thumb)=>{const v=(S.project&&S.project.imported_at)||"";return new URL("media/"+(thumb?"thumbs/"+String(f).replace(/\.[^.\/]+$/,".jpg"):String(f)).split("/").map(encodeURIComponent).join("/")+(v?"?v="+v:""),location.href).href};
+const mediaUrl=(f,thumb)=>{if(S.off)return offUrl(S.off.gh[f]);const v=(S.project&&S.project.imported_at)||"";return new URL("media/"+(thumb?"thumbs/"+String(f).replace(/\.[^.\/]+$/,".jpg"):String(f)).split("/").map(encodeURIComponent).join("/")+(v?"?v="+v:""),location.href).href};
 /* что показывать у кадра: обложка (Supabase) приоритетнее, затем картинка из GitHub, затем старая миниатюра из .noemocean */
 function thumbSrc(id){const h=S.shots.find(x=>x.id===id),lg=S.thumbs[id]||"";if(!h||h.cover)return lg?[lg]:[];const f=imgsOf(h)[0];return f?[mediaUrl(f,true),mediaUrl(f),lg].filter(Boolean):(lg?[lg]:[])}
 const BAD=new Set();
@@ -318,6 +321,8 @@ async function importFile(f){
  let d;try{const hd=new Uint8Array(await f.slice(0,4).arrayBuffer());
   if(hd[0]===0x50&&hd[1]===0x4b){const z=await readZipEntry(f,n=>/\.(noemtoline|noemline)$/i.test(n)&&!/(^|\/)(__MACOSX|\._)/.test(n));if(!z)return toast("В архиве нет файла .noemtoline");d=JSON.parse(new TextDecoder().decode(z.buf).replace(/^\uFEFF/,""))}
   else d=JSON.parse(await f.text())}catch(e){return toast("Не удалось прочитать файл")}
+ if(d&&d.format==="noemline-backup")return canBk()?backupLoad(f,d):toast("Нет права на загрузку бэкапа");
+ if(!S.me.owner)return toast("Это не файл бэкапа Noem.line");
  if(d&&(d.format==="noemtoline"||(Array.isArray(d.rows)&&!Array.isArray(d.dirRows))))return importLine(d);
  if(d.password){const p=await askText("Пароль проекта",true);if(p!==d.password)return toast("Неверный пароль")}
  if(!Array.isArray(d.dirRows))return toast("В файле нет раскадровки");
@@ -415,13 +420,13 @@ function teamGroups(){const g=[["Режиссёр",S.members.filter(p=>p.is_owne
  g.push(["Без должности",S.members.filter(p=>!p.is_owner&&!S.roles.some(r=>r.name===p.role))]);return g.filter(x=>x[1].length)}
 function viewTeam(){const m=$("#main"),O=S.me.owner,A=has("assign");
  m.innerHTML=`<div class="wrap"><div class="row" style="margin-bottom:10px">${has("invite")?`<button class="btn" data-act="invite">＋ Пригласить в группу</button><button class="btn ghost" data-act="invite_web">Пригласить без Telegram</button>`:""}${O?`<button class="btn ghost" data-act="roles">Должности</button>`:""}</div>`+
- (S.members.length?teamGroups().map(([n,a])=>`<div class="h2">${esc(n)} · ${a.length}</div>`+a.map(p=>{const k=S.shots.filter(h=>(h.assignees||[]).includes(p.tg_id)),pm=(p.perms||[]).length,ed=O&&!p.is_owner;
-  return`<div class="card"><span class="row grow" style="flex-wrap:nowrap;gap:12px;${ed?"cursor:pointer":""}"${ed?` data-member="${p.tg_id}"`:""}><span class="ava" style="width:34px;height:34px;margin:0;font-size:14px;flex:none">${esc((p.name||"?")[0].toUpperCase())}</span><span class="grow"><div class="t">${esc(p.name)}${p.tg_id===S.me.id?" (вы)":""}${p.tg_id<0?' <span class="sub">· noem.line</span>':""}</div><div class="sub">кадров: ${k.length}, готово: ${k.filter(h=>ACCEPTED.includes(h.status)).length}${pm?" · прав: "+pm:""}${ed?" · изменить ›":""}</div></span></span>${A?`<button class="btn sm" data-assign-m="${p.tg_id}">Назначить</button>`:""}</div>`}).join("")).join(""):`<div class="empty">Пока никого нет</div>`)+`</div>`}
-function memberSheet(p){const d=sheet(`<div class="h2" style="margin-top:0">${esc(p.name)}</div><div class="sub">Должность</div><div class="seg" id="rl">${S.roles.map(r=>`<button class="${p.role===r.name?"on":""}" data-r="${esc(r.name)}">${esc(r.name)}</button>`).join("")}</div><div class="h2">Права</div>${PERM_L.map(x=>`<label class="card" style="cursor:pointer"><input type="checkbox" value="${x[0]}" ${(p.perms||[]).includes(x[0])?"checked":""}><span class="grow">${x[1]}</span></label>`).join("")}<button class="btn ghost" style="width:100%;margin-bottom:10px" id="bs">Назначить на сцены и кадры…</button><button class="btn" style="width:100%" id="ok">Готово</button>`);
+ (S.members.length?teamGroups().map(([n,a])=>`<div class="h2">${esc(n)} · ${a.length}</div>`+a.map(p=>{const k=S.shots.filter(h=>(h.assignees||[]).includes(p.tg_id)),pm=(p.perms||[]).filter(x=>x!=="hide_unassigned").length,ed=O&&!p.is_owner,dl=canDel()&&!p.is_owner&&p.tg_id!==S.me.id;
+  return`<div class="card"><span class="row grow" style="flex-wrap:nowrap;gap:12px;${ed?"cursor:pointer":""}"${ed?` data-member="${p.tg_id}"`:""}><span class="ava" style="width:34px;height:34px;margin:0;font-size:14px;flex:none">${esc((p.name||"?")[0].toUpperCase())}</span><span class="grow"><div class="t">${esc(p.name)}${p.tg_id===S.me.id?" (вы)":""}${p.tg_id<0?' <span class="sub">· noem.line</span>':""}</div><div class="sub">кадров: ${k.length}, готово: ${k.filter(h=>ACCEPTED.includes(h.status)).length}${pm?" · прав: "+pm:""}${ed?" · изменить ›":""}</div></span></span>${A?`<button class="btn sm" data-assign-m="${p.tg_id}">Назначить</button>`:""}${dl?`<button class="btn sm ghost" data-del-m="${p.tg_id}">Удалить</button>`:""}</div>`}).join("")).join(""):`<div class="empty">Пока никого нет</div>`)+(canDel()?`<div class="h2">Удалённые</div><div id="dl"><div class="sub">Загрузка…</div></div>`:"")+`</div>`;if(canDel())loadDel()}
+function memberSheet(p){const d=sheet(`<div class="h2" style="margin-top:0">${esc(p.name)}</div><div class="sub">Должность</div><div class="seg" id="rl">${S.roles.map(r=>`<button class="${p.role===r.name?"on":""}" data-r="${esc(r.name)}">${esc(r.name)}</button>`).join("")}</div><div class="h2">Права</div><label class="card" style="cursor:pointer"><input type="checkbox" value="see_un" ${(p.perms||[]).includes("hide_unassigned")?"":"checked"}><span class="grow">Смотреть неназначенные задачи</span></label>${PERM_L.map(x=>`<label class="card" style="cursor:pointer"><input type="checkbox" value="${x[0]}" ${(p.perms||[]).includes(x[0])?"checked":""}><span class="grow">${x[1]}</span></label>`).join("")}<button class="btn ghost" style="width:100%;margin-bottom:10px" id="bs">Назначить на сцены и кадры…</button><button class="btn" style="width:100%" id="ok">Готово</button>`);
  d.querySelector("#bs").onclick=()=>{d.remove();scenesAssignSheet(p)};
  let role=p.role||null;
  d.querySelector("#rl").onclick=e=>{const r=e.target.dataset&&e.target.dataset.r;if(!r)return;role=r;d.querySelectorAll("#rl button").forEach(b=>b.classList.toggle("on",b.dataset.r===r))};
- d.querySelector("#ok").onclick=async()=>{const perms=[...d.querySelectorAll("input:checked")].map(i=>i.value);d.remove();try{await call("set_member",{id:p.tg_id,role,perms});p.role=role;p.perms=perms;route()}catch(e){toast(errText(e))}}}
+ d.querySelector("#ok").onclick=async()=>{const perms=[...d.querySelectorAll("input:checked")].map(i=>i.value).filter(v=>v!=="see_un");if(!d.querySelector("[value=see_un]").checked)perms.push("hide_unassigned");d.remove();try{await call("set_member",{id:p.tg_id,role,perms});p.role=role;p.perms=perms;route()}catch(e){toast(errText(e))}}}
 S.sel=new Set();let selOn=false,lpT=null,lpAt=0;
 const msgOf=id=>S.msgs.find(m=>m.id===id);
 const canPinMsg=()=>{const h=S.shots.find(x=>x.id===S.curShot);return !!h&&(canEdit(h)||has("pin_any"))};
@@ -513,9 +518,11 @@ $("#pic").onchange=e=>{const f=e.target.files[0];e.target.value="";setPicked(f)}
  addEventListener("drop",e=>{if(!hasF(e))return;e.preventDefault();dc=0;document.body.classList.remove("dz");if(!$("#tx"))return;const fs=e.dataTransfer.files;if(fs&&fs[0])setPicked(fs[0]);if(fs&&fs.length>1)toast("Прикреплён только первый файл")})}
 function openLb(src,more){const l=document.createElement("div");l.className="lb";l.innerHTML=`<img src="${src}">`;l.onclick=()=>l.remove();document.body.append(l);
  if(more)more().then(u=>{const x=l.querySelector("img");if(u&&x&&document.body.contains(l))x.src=u}).catch(()=>{})}
-function appSheet(){const pj=S.project||{},O=S.me.owner,T=O||has("tasks"),row=(id,t,sub)=>`<button class="card" id="${id}" style="width:100%;text-align:left"><span class="grow"><div class="t">${t}</div><div class="sub">${sub}</div></span></button>`;
+function appSheet(){if(S.off){const d=sheet(`<div class="h2" style="margin-top:0">Офлайн-режим</div><p class="sub" style="-webkit-line-clamp:unset">Просмотр бэкапа от ${new Date(S.off.created).toLocaleString()}. Изменения никуда не отправляются.</p><button class="btn" id="ox" style="width:100%">Выйти из офлайн-режима</button>`);d.querySelector("#ox").onclick=()=>location.reload();return}
+ const pj=S.project||{},O=S.me.owner,T=O||has("tasks"),row=(id,t,sub)=>`<button class="card" id="${id}" style="width:100%;text-align:left"><span class="grow"><div class="t">${t}</div><div class="sub">${sub}</div></span></button>`;
  const acc=accHtml(row);const tog=T?`<label class="card" style="cursor:pointer;margin-top:10px"><input type="checkbox" id="mg" ${S.manage?"checked":""}><span class="grow"><div class="t">Режим управления задачами</div><div class="sub" style="-webkit-line-clamp:unset">Добавление, редактирование и удаление сцен, кадров и задач по звуку</div></span></label>`:"";
- const d=sheet(`<div class="h2" style="margin-top:0">Настройки</div>${O?`<button class="card" id="si" style="width:100%;text-align:left">⇪ Загрузить .noemtoline / .noemocean</button><div class="sub" style="-webkit-line-clamp:unset;margin:-4px 2px 10px">Из архива «Noem_Line» (Noem_ocean → Экспорт) загрузите сюда файл .noemtoline или сам архив .zip, а папку <b>media</b> положите в GitHub рядом с index.html: картинки кадров будут браться оттуда, а не из Telegram и Supabase.</div>`+docRows(row,pj)+row("sa","🎞 Аниматик (видео до 50 МБ)",esc(pj.anim_name||"не загружен"))+`<div class="sub" style="-webkit-line-clamp:unset;margin:-4px 2px 10px">Видео больше 50 МБ отправьте в общий чат группы с подписью #аниматик, приложение подхватит его само.</div>`+row("sf","📁 Рабочая папка (ссылка)",esc(pj.folder_url||"не указана")):""}${acc}${tog}${T?"":`<div class="sub">Здесь пока нет настроек.</div>`}`);
+ const d=sheet(`<div class="h2" style="margin-top:0">Настройки</div>${O?`<button class="card" id="si" style="width:100%;text-align:left">⇪ Загрузить .noemtoline / .noemocean</button><div class="sub" style="-webkit-line-clamp:unset;margin:-4px 2px 10px">Из архива «Noem_Line» (Noem_ocean → Экспорт) загрузите сюда файл .noemtoline или сам архив .zip, а папку <b>media</b> положите в GitHub рядом с index.html: картинки кадров будут браться оттуда, а не из Telegram и Supabase.</div>`+docRows(row,pj)+row("sa","🎞 Аниматик (видео до 50 МБ)",esc(pj.anim_name||"не загружен"))+`<div class="sub" style="-webkit-line-clamp:unset;margin:-4px 2px 10px">Видео больше 50 МБ отправьте в общий чат группы с подписью #аниматик, приложение подхватит его само.</div>`+row("sf","📁 Рабочая папка (ссылка)",esc(pj.folder_url||"не указана")):""}${canBk()?row("bx","⇩ Экспорт бэкапа проекта","Архив .zip: файл .noemline и папка media")+row("bl","⇪ Загрузить бэкап","Архив .zip или файл .noemline из Noem.line"):""}${acc}${tog}${T||canBk()?"":`<div class="sub">Здесь пока нет настроек.</div>`}`);
+  if(d.querySelector("#bx"))d.querySelector("#bx").onclick=()=>{d.remove();bkExport()};if(d.querySelector("#bl"))d.querySelector("#bl").onclick=()=>{d.remove();$("#file").click()};
  const g=id=>d.querySelector(id),b=g("#si");if(b)b.onclick=()=>{d.remove();$("#file").click()};
  if(g("#sl"))g("#sl").onclick=()=>{d.remove();S.docKind="lit";$("#pdf").click()};
  if(g("#sd"))g("#sd").onclick=()=>{d.remove();S.docKind="dir";$("#pdf").click()};
@@ -534,7 +541,7 @@ $("#vid").onchange=e=>{const f=e.target.files[0];e.target.value="";uploadAnim(f)
 /* ---------- просмотр PDF прямо в приложении: масштаб, щипок, двойной тап ---------- */
 const DOCN={lit:"Лит сценарий",dir:"Реж. сценарий",chars:"Персонажи"};
 /* PDF из GitHub: папка media рядом с index.html */
-const DOCF={lit:"script",dir:"director_exp",chars:"chars"},ghDoc=()=>(S.project||{}).doc_mode==="github",docUrl=k=>new URL("media/"+DOCF[k]+".pdf",location.href).href;
+const DOCF={lit:"script",dir:"director_exp",chars:"chars"},ghDoc=()=>(S.project||{}).doc_mode==="github",docUrl=k=>S.off?offUrl(S.off.docs[k]):new URL("media/"+DOCF[k]+".pdf",location.href).href;
 function docRows(row,pj){const gh=ghDoc();
  const seg=`<div class="h2" style="margin-top:12px">Где хранить PDF (сценарии, персонажи)</div><div class="seg"><button id="dm_gh" class="${gh?"on":""}">GitHub (экономнее)</button><button id="dm_direct" class="${gh?"":"on"}">Напрямую (затратнее)</button></div>`;
  if(!gh)return seg+row("sl","📖 Лит сценарий (PDF)",esc(pj.lit_name||"не загружен"))+row("sd","🎬 Реж. сценарий (PDF)",esc(pj.dir_name||"не загружен"))+row("sc","👥 Персонажи (PDF)",esc(pj.chars_name||"не загружен"));
@@ -750,7 +757,8 @@ $("#main").onclick=e=>{const t=e.target;
  const oa=t.closest("[data-open-anim]");if(oa){const pj=S.project||{};return openTg("https://t.me/c/"+S.chat+"/"+pj.anim_msg)}
  const gd=t.closest("[data-ghdl]");if(gd)return openLink(docUrl(gd.dataset.ghdl));
   const dt=t.closest("[data-doctome]");if(dt){return call("send_doc_to_me",{kind:dt.dataset.doctome}).then(()=>toast("Отправлено вам в личку от бота")).catch(e=>toast(errText(e)))}
- const mb=t.closest("[data-member]");if(mb){const p=mm(+mb.dataset.member);if(p)memberSheet(p);return}
+ const dmb=t.closest("[data-del-m]");if(dmb)return delMember(+dmb.dataset.delM);const rmb=t.closest("[data-res-m]");if(rmb)return resMember(+rmb.dataset.resM);
+  const mb=t.closest("[data-member]");if(mb){const p=mm(+mb.dataset.member);if(p)memberSheet(p);return}
  const sb=t.closest("[data-stage]");if(sb){const mn=$("#main"),y=mn.scrollTop;S.stage=+sb.dataset.stage;S.sel=new Set();updSel();headSig="";paintHead(true);renderChat(false);mn.scrollTop=y;return}
  const g=t.closest("[data-go]");if(g)return go(g.dataset.go);
  const st=t.closest("[data-st]");if(st&&!st.disabled){const h=S.shots.find(x=>x.id===S.curShot);const k=st.dataset.st;return setShot(h,{status:k,...(k==="done"||k==="finished"?{progress:100}:{})})}
@@ -825,7 +833,7 @@ function rtStart(){
 function fatal(html){$("#main").innerHTML=`<div class="empty">${html}</div>`;$("#nav").hidden=true;$("#foot").innerHTML=""}
 let REG=new URLSearchParams(location.search).get("reg")||"";
 function loginScreen(){const R=!!REG;
- fatal(`<div style="max-width:320px;margin:0 auto;text-align:left"><div class="h2" style="margin-top:0">${R?"Регистрация noem.line":"Вход"}</div>${R?`<input class="inp" id="rn" placeholder="Имя (как вас увидят в программе)">`:""}<input class="inp" id="rl" placeholder="Логин" autocapitalize="off" autocomplete="username"><input class="inp" id="rp" type="password" placeholder="Пароль${R?" (от 6 символов)":""}" autocomplete="${R?"new-password":"current-password"}"><button class="btn" id="rb" style="width:100%;margin-top:12px">${R?"Зарегистрироваться":"Войти"}</button>${R?`<div class="sub" style="margin-top:8px"><a href="${location.pathname}">У меня уже есть аккаунт</a></div>`:""}<div class="sub" style="margin:16px 0 6px">Или войдите через Telegram:</div><div id="lg" style="min-height:44px"></div></div>`);
+ fatal(`<div style="max-width:320px;margin:0 auto;text-align:left"><div class="h2" style="margin-top:0">${R?"Регистрация noem.line":"Вход"}</div>${R?`<input class="inp" id="rn" placeholder="Имя (как вас увидят в программе)">`:""}<input class="inp" id="rl" placeholder="Логин" autocapitalize="off" autocomplete="username"><input class="inp" id="rp" type="password" placeholder="Пароль${R?" (от 6 символов)":""}" autocomplete="${R?"new-password":"current-password"}"><button class="btn" id="rb" style="width:100%;margin-top:12px">${R?"Зарегистрироваться":"Войти"}</button>${R?`<div class="sub" style="margin-top:8px"><a href="${location.pathname}">У меня уже есть аккаунт</a></div>`:""}<div class="sub" style="margin:16px 0 6px">Или войдите через Telegram:</div><div id="lg" style="min-height:44px"></div><button class="btn ghost" style="width:100%;margin-top:14px" onclick="offPick()">Загрузить офлайн</button></div>`);
  const go=async()=>{try{const b=R?{action:"register",token:REG,name:$("#rn").value,login:$("#rl").value,password:$("#rp").value}:{action:"login_pw",login:$("#rl").value,password:$("#rp").value};
   const r=await handle(await fetch(API,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(b)}));WEB=r.token;try{localStorage.setItem("noem_web",WEB)}catch(e){}
   if(R){REG="";history.replaceState(null,"",location.pathname+location.hash)}boot()}catch(e){toast(errText(e))}};
@@ -837,16 +845,138 @@ async function boot(again){
  if(!INIT&&(!WEB||REG))return loginScreen();
  if(API.includes("ВАШ-ПРОЕКТ"))return fatal("В файле index.html не указан адрес API.<br><span class=\"sub\">Замените ВАШ-ПРОЕКТ в строке API.</span>");
  let r;
- try{r=await call("bootstrap",{})}catch(e){
+ try{r=await call("bootstrap",{})}catch(e){if(e.code==="deleted")return;
   if(e.code==="not_member")return fatal("Вы не участник группы проекта.<br><span class=\"sub\">Попросите у режиссёра ссылку-приглашение.</span>");
   if(e.code==="unbound")return fatal("Проект ещё не настроен.<br><span class=\"sub\">Режиссёр должен привязать группу командой /bind.</span>");
   if(e.code==="auth"&&!INIT){WEB="";try{localStorage.removeItem("noem_web")}catch(x){}return loginScreen()}if(e.code==="auth")return fatal("Не удалось подтвердить вход через Telegram.<br><span class=\"sub\">Закройте и откройте приложение заново.</span>");
-  return fatal("Не удалось подключиться: "+esc(errText(e))+`<br><button class="btn" onclick="boot()">Повторить</button>`)}
+  return fatal("Не удалось подключиться: "+esc(errText(e))+`<br><button class="btn" onclick="boot()">Повторить</button> <button class="btn ghost" onclick="offPick()">Загрузить офлайн</button>`)}
  S.me=r.me;S.roles=r.roles||[];S.stages=r.stages||[];S.scenes=r.scenes;S.shots=r.shots;S.members=r.members;S.project=r.project;S.chat=r.chat;S.bound=r.bound;S.sinceShots=maxU(r.shots,0);S.unread=r.unread||0;
  if(!S.bound&&S.me.owner){$("#nav").hidden=false;$("#cfg").hidden=false;
   $("#main").innerHTML=`<div class="wrap"><div class="note"><b>Осталось привязать группу.</b><br>Откройте вашу группу с темами и отправьте в ней команду <b>/bind</b>. Бот ответит, что группа привязана и каких прав ему не хватает. Потом нажмите «Проверить».</div><button class="btn" onclick="boot()">Проверить</button></div>`;return}
  if(!S.me.owner&&!S.me.role&&!document.querySelector(".sheet"))roleSheet();
  route();if(!again){schedule();rtStart()}}
+/* ===================== БЭКАП: экспорт, загрузка, офлайн ===================== */
+const canBk=()=>!!S.me&&!S.off&&(S.me.owner||has("export")),canDel=()=>!!S.me&&!S.off&&(S.me.owner||has("del_users"));
+const BK_OPTS=[["chat","Чаты (тексты сообщений)"],["db","База данных (сцены, кадры, статусы, исполнители, должности, права)"],["docs","Лит. и реж. сценарии, библия персонажей (PDF)"],["sb","Изначальная раскадровка из .noemocean"],["img","Картинки из чатов"],["vid","Видео из чатов"],["oth","Другие файлы из чатов"]];
+const catOf=x=>x.file_id?(["photo","image"].includes(x.file_kind)?"img":x.file_kind==="video"?"vid":"oth"):null;
+const safeN=s=>String(s==null?"":s).replace(/[\\\/:*?"<>|\x00-\x1f]/g,"_").trim().slice(0,80)||"_";
+const mimeOf=p=>({jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",gif:"image/gif",mp4:"video/mp4",webm:"video/webm",mov:"video/quicktime",pdf:"application/pdf",mp3:"audio/mpeg",ogg:"audio/ogg",oga:"audio/ogg"})[String(p).split(".").pop().toLowerCase()]||"application/octet-stream";
+/* --- zip: запись (без сжатия) и чтение --- */
+const crcTab=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc32=b=>{let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=crcTab[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0};
+function ZipW(){const P=[],C=[],te=new TextEncoder();let off=0;
+ return{async add(name,blob){const nb=te.encode(name),sz=blob.size,crc=crc32(new Uint8Array(await blob.arrayBuffer()));
+   if(off+sz+(C.length/2+1)*200>0xFFFFFFFF)throw new Error("Архив больше 4 ГБ: снимите галочки с видео или файлов");
+   const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x800,true);h.setUint16(12,0x21,true);h.setUint32(14,crc,true);h.setUint32(18,sz,true);h.setUint32(22,sz,true);h.setUint16(26,nb.length,true);
+   const c=new DataView(new ArrayBuffer(46));c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x800,true);c.setUint16(14,0x21,true);c.setUint32(16,crc,true);c.setUint32(20,sz,true);c.setUint32(24,sz,true);c.setUint16(28,nb.length,true);c.setUint32(42,off,true);
+   P.push(h.buffer,nb,blob);C.push(c.buffer,nb);off+=30+nb.length+sz},
+  finish(){let cs=0;for(let i=0;i<C.length;i+=2)cs+=46+C[i+1].length;const n=C.length/2,e=new DataView(new ArrayBuffer(22));
+   e.setUint32(0,0x06054b50,true);e.setUint16(8,n,true);e.setUint16(10,n,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
+   return new Blob([...P,...C,e.buffer],{type:"application/zip"})}}}
+/* имя → {s: начало данных, sz, m}. Архивы Noem.line пишутся без «extra» в локальных заголовках, поэтому s = смещение + 30 + длина имени */
+async function zipIndex(f){const sl=(a,b)=>f.slice(a,b).arrayBuffer(),size=f.size,tl=Math.min(size,65557),tail=new DataView(await sl(size-tl,size));let e=-1;
+ for(let i=tail.byteLength-22;i>=0;i--)if(tail.getUint32(i,true)===0x06054b50){e=i;break}
+ if(e<0)throw new Error("not zip");
+ const cnt=tail.getUint16(e+10,true),cs=tail.getUint32(e+12,true),co=tail.getUint32(e+16,true),cd=new DataView(await sl(co,co+cs)),dec=new TextDecoder(),M=new Map();let p=0;
+ for(let k=0;k<cnt&&p+46<=cd.byteLength;k++){if(cd.getUint32(p,true)!==0x02014b50)break;
+  const m=cd.getUint16(p+10,true),sz=cd.getUint32(p+20,true),nl=cd.getUint16(p+28,true),xl=cd.getUint16(p+30,true),cl=cd.getUint16(p+32,true),lo=cd.getUint32(p+42,true);
+  M.set(dec.decode(new Uint8Array(cd.buffer,cd.byteOffset+p+46,nl)),{s:lo+30+nl,sz,m});p+=46+nl+xl+cl}
+ return M}
+const zBlob=(f,idx,path)=>{const e=idx&&idx.get(path);return e&&e.m===0?new Blob([f.slice(e.s,e.s+e.sz)],{type:mimeOf(path)}):null};
+const toDataUrl=b=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(b)});
+/* --- окно с галочками --- */
+function bkAsk(title,keys,okTxt){return new Promise(res=>{const d=sheet(`<div class="h2" style="margin-top:0">${esc(title)}</div>${BK_OPTS.filter(o=>keys.includes(o[0])).map(o=>`<label class="card" style="cursor:pointer"><input type="checkbox" value="${o[0]}" checked><span class="grow">${esc(o[1])}</span></label>`).join("")}<div class="sub" style="-webkit-line-clamp:unset;margin:4px 2px">Картинки, видео и файлы из чатов зависят от пункта «Чаты».</div><div class="row" style="margin-top:12px"><button class="btn" id="y">${okTxt}</button><button class="btn ghost" id="n">Отмена</button></div>`);
+ const chk=()=>{const c=d.querySelector("[value=chat]");d.querySelectorAll("[value=img],[value=vid],[value=oth]").forEach(i=>{i.disabled=c?!c.checked:false})};d.addEventListener("change",chk);chk();
+ d.querySelector("#y").onclick=()=>{const o={};d.querySelectorAll("input").forEach(i=>o[i.value]=i.checked&&!i.disabled);d.remove();res(o)};
+ d.querySelector("#n").onclick=()=>{d.remove();res(null)}})}
+const progSheet=t=>{const d=sheet(`<div class="h2" style="margin-top:0">${t}</div><p class="sub" id="bkp" style="-webkit-line-clamp:unset">Подготовка…</p>`);return[d,s=>{const e=d.querySelector("#bkp");if(e)e.textContent=s}]};
+/* --- экспорт --- */
+async function bkExport(){
+ const o=await bkAsk("Экспорт бэкапа проекта",BK_OPTS.map(x=>x[0]),"Скачать");if(!o||!Object.values(o).some(Boolean))return;
+ const[prog,say]=progSheet("Экспорт бэкапа");
+ try{
+  const Z=ZipW(),M={format:"noemline-backup",v:1,created:Date.now(),opts:o},files={},gh={},thumbs={},docs={},skipped=[],tasks=[];
+  const core=await call("export_data",{part:"core"});
+  M.title=(core.project&&core.project.title)||"";
+  if(o.db)Object.assign(M,{project:core.project,scenes:core.scenes,shots:core.shots,shot_stages:core.shot_stages,stages:core.stages,roles:core.roles,members:core.members});
+  const scn=Object.fromEntries(core.scenes.map(s=>[s.id,s])),used=new Set(),fold={};
+  for(const h of core.shots){let n=h.scene===SND?"Звук "+safeN(h.num):"Сц "+safeN((scn[h.scene]||{}).num||"?")+" · Кадр "+safeN(h.num),b=n,i=2;while(used.has(n))n=b+" ("+i++ +")";used.add(n);fold[h.id]="media/"+n}
+  let msgs=[];
+  if(o.chat){let after=0;for(;;){say("Чаты: "+msgs.length);const r=await call("export_data",{part:"msgs",after});msgs=msgs.concat(r.rows);if(r.rows.length<1000)break;after=r.rows[r.rows.length-1].id}M.messages=msgs}
+  const tgGet=async id=>{const r=await fetch(API,{method:"POST",headers:{"content-type":"application/json",...AH()},body:JSON.stringify({action:"file",file_id:id})});if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||"HTTP "+r.status)}return r.blob()};
+  const webGet=async u=>{const r=await fetch(u);if(!r.ok)throw new Error("HTTP "+r.status);return r.blob()};
+  for(const x of msgs){const c=catOf(x);if(!c||!o[c])continue;const p=(fold[x.shot_id]||"media/_без кадра")+"/chat/"+(c==="img"?"images":c==="vid"?"videos":"files")+"/"+x.id+"_"+safeN(x.file_name);
+   files[x.file_id]=p;if(c==="img"&&x.thumb_id)files[x.thumb_id]=p;tasks.push({p,get:()=>tgGet(x.file_id)})}
+  if(o.sb){for(const h of core.shots){const f=fold[h.id];
+    (h.img_files||[]).forEach(n=>{if(!n)return;const p=f+"/storyboard/"+safeN(n);gh[n]=p;tasks.push({p,get:()=>webGet(mediaUrl(n))})});
+    if(h.full_id){const p=f+"/storyboard/telegram_1.jpg";files[h.full_id]=p;tasks.push({p,get:()=>tgGet(h.full_id)})}
+    (h.full_extra||[]).forEach((e,i)=>{if(e&&e.id){const p=f+"/storyboard/telegram_"+(i+2)+".jpg";files[e.id]=p;tasks.push({p,get:()=>tgGet(e.id)})}})}
+   let after="";for(;;){say("Раскадровка: обложки");const r=await call("export_data",{part:"thumbs",after});for(const t of r.rows){if(!fold[t.shot_id])continue;const p=fold[t.shot_id]+"/storyboard/cover.jpg";thumbs[t.shot_id]=p;await Z.add(p,await (await fetch(t.data)).blob())}
+    if(r.rows.length<15)break;after=r.rows[r.rows.length-1].shot_id}}
+  if(o.docs&&core.project){const pj=core.project,g=pj.doc_mode==="github";
+   for(const k of["lit","dir","chars"]){const id=pj[k+"_file_id"];
+    if(g){const p="media/_docs/"+DOCF[k]+".pdf";docs[k]=p;tasks.push({p,get:()=>webGet(docUrl(k))})}
+    else if(id){const p="media/_docs/"+safeN(pj[k+"_name"]||DOCF[k]+".pdf");docs[k]=p;files[id]=p;tasks.push({p,get:()=>tgGet(id)})}}}
+  let n=0,i=0;const worker=async()=>{while(i<tasks.length){const t=tasks[i++];try{await Z.add(t.p,await t.get())}catch(e){skipped.push({path:t.p,err:String(e.message||e)});for(const k in files)if(files[k]===t.p)delete files[k];for(const k in gh)if(gh[k]===t.p)delete gh[k];for(const k in docs)if(docs[k]===t.p)delete docs[k]}
+    say("Файлы: "+(++n)+" из "+tasks.length+(skipped.length?" (пропущено: "+skipped.length+")":""))}};
+  await Promise.all([worker(),worker(),worker()]);
+  Object.assign(M,{files,gh,thumbs,docs,skipped});
+  await Z.add("project.noemline",new Blob([JSON.stringify(M)],{type:"application/json"}));
+  const url=URL.createObjectURL(Z.finish()),a=document.createElement("a");a.href=url;a.download="Noem.line_backup_"+new Date().toISOString().slice(0,10)+".zip";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  prog.remove();toast(skipped.length?"Готово. Пропущено файлов: "+skipped.length+" (больше 20 МБ или недоступны)":"Бэкап скачан")
+ }catch(e){prog.remove();toast("Экспорт не удался: "+errText(e))}}
+/* --- загрузка бэкапа в проект --- */
+async function backupLoad(f,d){
+ const av=BK_OPTS.map(x=>x[0]).filter(k=>d.opts&&d.opts[k]);if(!av.length)return toast("В бэкапе нет данных");
+ const o=await bkAsk("Что загрузить из бэкапа?",av,"Загрузить");if(!o||!Object.values(o).some(Boolean))return;
+ if(!await askYes("Данные проекта будут обновлены из бэкапа: совпадающие записи заменятся. Продолжить?"))return;
+ const[prog,say]=progSheet("Загрузка бэкапа");
+ try{
+  let idx=null;const hd=new Uint8Array(await f.slice(0,4).arrayBuffer());if(hd[0]===0x50&&hd[1]===0x4b)idx=await zipIndex(f);
+  const send=(table,rows,x)=>call("restore",{table,rows,...x});
+  const chunks=async(table,rows,n,x)=>{for(let i=0;i<rows.length;i+=n){say(table+": "+Math.min(i+n,rows.length)+" из "+rows.length);await send(table,rows.slice(i,i+n),x)}};
+  if(o.db){await chunks("roles",d.roles||[],200);await chunks("stages",d.stages||[],200);await chunks("scenes",d.scenes||[],200);
+   await chunks("shots",d.shots||[],150,{sb:!!o.sb});await chunks("shot_stages",d.shot_stages||[],400);await chunks("members",d.members||[],100);
+   if(d.project)await send("project",[],{data:{title:d.project.title}})}
+  else if(o.sb)await chunks("shots_sb",d.shots||[],100);
+  if(o.docs&&d.project)await send("project",[],{data:d.project});
+  if(o.sb&&idx){const e=Object.entries(d.thumbs||{});for(let i=0;i<e.length;i+=6){say("обложки: "+Math.min(i+6,e.length)+" из "+e.length);const rows=[];
+    for(const[sid,p]of e.slice(i,i+6)){const b=zBlob(f,idx,p);if(b)rows.push({shot_id:sid,data:await toDataUrl(b)})}await send("thumbs",rows)}}
+  if(o.chat){const ms=(d.messages||[]).map(x=>{const c=catOf(x);if(c&&!o[c]){const y={...x};["file_id","thumb_id","file_kind","file_name","file_size"].forEach(k=>y[k]=null);return y}return x});await chunks("messages",ms,300)}
+  await send("end",[],{last:true});
+  prog.remove();toast("Бэкап загружен");await boot(true)
+ }catch(e){prog.remove();toast("Загрузка не удалась: "+errText(e))}}
+/* --- офлайн --- */
+const OFFU=new Map();
+function offUrl(p){if(!S.off||!p)return"";let u=OFFU.get(p);if(u)return u;const b=zBlob(S.off.f,S.off.idx,p);if(!b)return"";u=URL.createObjectURL(b);OFFU.set(p,u);return u}
+async function offCall(a,d){const O=S.off;
+ if(a==="poll"){const ms=d.shot_id?O.msgs.filter(x=>x.shot_id===d.shot_id).sort((x,y)=>x.id-y.id):null;
+  return{shots:[],members:S.members,project:S.project,msgs:ms?(+d.since_msgs?[]:ms.slice(-300)):null,roles:S.roles,stages:S.stages,ss:d.shot_id?O.ss.filter(x=>x.shot_id===d.shot_id):null,unread:0}}
+ if(a==="thumbs")return Object.fromEntries((d.ids||[]).map(i=>[i,O.th[i]?offUrl(O.th[i]):""]).filter(x=>x[1]));
+ if(a==="notifs")return{items:[],unread:0};
+ if(a==="notif_read")return{ok:true,unread:0};
+ const er=new Error("Офлайн: изменения никуда не отправляются");er.code="offline";throw er}
+async function offLoad(f){
+ try{let d,idx=new Map();const hd=new Uint8Array(await f.slice(0,4).arrayBuffer());
+  if(hd[0]===0x50&&hd[1]===0x4b){const z=await readZipEntry(f,n=>/\.noemline$/i.test(n)&&!/(^|\/)(__MACOSX|\._)/.test(n));if(!z)return toast("В архиве нет файла .noemline");d=JSON.parse(new TextDecoder().decode(z.buf).replace(/^\uFEFF/,""));idx=await zipIndex(f)}
+  else d=JSON.parse(await f.text());
+  if(!d||d.format!=="noemline-backup"||!d.project||!d.shots)return toast("Нужен бэкап Noem.line, сделанный вместе с базой данных");
+  OFFU.forEach(u=>URL.revokeObjectURL(u));OFFU.clear();
+  S.off={f,idx,created:d.created,files:d.files||{},gh:d.gh||{},th:d.thumbs||{},docs:d.docs||{},msgs:d.messages||[],ss:d.shot_stages||[]};
+  Object.assign(S,{me:{id:0,name:"Офлайн",role:null,owner:false,perms:[],web_only:true,login:null},roles:d.roles||[],stages:d.stages||[],scenes:d.scenes||[],shots:d.shots||[],members:(d.members||[]).filter(x=>!x.deleted),project:d.project,chat:null,bound:false,unread:0,thumbs:{}});
+  $("#nav").hidden=false;$("#cfg").hidden=false;route();toast("Офлайн-режим: бэкап от "+new Date(d.created).toLocaleDateString())
+ }catch(e){S.off=null;toast("Не удалось прочитать архив")}}
+function offPick(){const i=document.createElement("input");i.type="file";i.accept=".noemline,.zip,application/zip,application/json";i.onchange=()=>{if(i.files[0])offLoad(i.files[0])};i.click()}
+/* --- удалённые пользователи --- */
+async function loadDel(){if(!$("#dl"))return;try{const r=await call("del_list",{}),el=$("#dl");if(!el)return;
+ el.innerHTML=r.items.length?r.items.map(p=>`<div class="card"><span class="grow"><div class="t">${esc(p.name)}${p.tg_id<0?' <span class="sub">· noem.line</span>':""}</div><div class="sub">${p.restore_pending?"ждёт возвращения в группу · ":""}${p.deleted_at?new Date(p.deleted_at).toLocaleDateString():""}</div></span><button class="btn sm" data-res-m="${p.tg_id}">${p.restore_pending?"Ссылка":"Вернуть"}</button></div>`).join(""):`<div class="sub">Никого нет</div>`}catch(x){}}
+async function delMember(id){const p=mm(id);if(!p||!await askYes("Удалить «"+p.name+"» из Noem.line?\nСообщения и файлы сохранятся, вход будет закрыт"+(id>0?", из группы Telegram человек будет исключён":"")+"."))return;
+ try{const r=await call("del_member",{id});S.members=S.members.filter(x=>x.tg_id!==id);toast(r.kick_failed?"Удалён, но из группы исключить не удалось: бот должен быть админом с правом блокировки":"Пользователь удалён");route()}catch(e){toast(errText(e))}}
+async function resMember(id){try{const r=await call("restore_member",{id});
+ if(r.link){const d=sheet(`<div class="h2" style="margin-top:0">Ссылка-приглашение</div><p class="sub" style="-webkit-line-clamp:unset">Одноразовая. Пользователь восстановится в Noem.line, когда вернётся в группу Telegram по этой ссылке.</p><div class="link">${esc(r.link)}</div><div class="row"><button class="btn" id="cp">Скопировать</button><button class="btn ghost" id="shr">Отправить в Telegram</button></div>`);
+  d.querySelector("#cp").onclick=async()=>{try{await navigator.clipboard.writeText(r.link);toast("Скопировано")}catch(e){toast("Выделите ссылку и скопируйте вручную")}};
+  d.querySelector("#shr").onclick=()=>{const u="https://t.me/share/url?url="+encodeURIComponent(r.link);TGW&&TGW.openTelegramLink?TGW.openTelegramLink(u):open(u)}}
+ else toast("Пользователь возвращён");route()}catch(e){toast(errText(e))}}
 boot();
 </script>
 </body>
