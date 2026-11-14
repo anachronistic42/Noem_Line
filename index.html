@@ -210,6 +210,10 @@ textarea.inp{resize:vertical}
 #smw #saveToast.show{opacity:1}
 #smw #dropOv{position:fixed;inset:8px;z-index:3000;display:none;align-items:center;justify-content:center;border:2px dashed var(--accent);border-radius:10px;background:var(--sec);backdrop-filter:blur(2px);color:var(--accent);font-family:inherit;font-size:16px;letter-spacing:1px;pointer-events:none}
 #smw #dropOv.show{display:flex}
+.kb{margin:0 0 14px;border:1px solid var(--line);border-left:6px solid var(--c);border-radius:12px;overflow:hidden;background:var(--panel)}.kbh{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;font-weight:700;background:var(--c);color:#fff}.kbh span{font-weight:500;opacity:.85;font-size:12px}
+.kb .kt{border:0;min-width:760px}.kb .kt th{background:color-mix(in srgb,var(--c) 14%,var(--panel))}.kdc{padding:4px!important}.kd{display:inline-block;margin:2px 4px 2px 0;padding:4px 9px;border-radius:14px;border:1px solid var(--c);font-size:12px;background:color-mix(in srgb,var(--c) 12%,transparent);color:var(--ink)}.kd.add{border-style:dashed;color:var(--mute)}.kd:disabled{opacity:1}
+.ks{border-radius:8px;font-weight:600;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}.kx{font-size:12px;padding:0 3px;margin-left:3px;color:inherit}
+
 #smw{--bg:var(--panel);--accent:var(--acc);--accent2:var(--acc);--text:var(--ink);--muted:var(--mute);--border:var(--line);--panel-bg:var(--panel);--panel-bg2:var(--panel);--panel-bg3:rgba(127,127,127,.13);--cell-bg:var(--panel);--cell-hover:rgba(127,127,127,.09);--dropdown-bg:var(--panel);--onacc:var(--accT);--sec:rgba(127,127,127,.14);color:var(--ink);font-family:inherit}
 #smw .topbar{position:static;height:auto;flex-wrap:wrap;padding:6px 0;background:none;border:0;gap:8px;z-index:auto}
 #smw .tl,#smw .tr{flex:1 1 auto;flex-wrap:wrap}
@@ -526,7 +530,7 @@ addEventListener("hashchange",route);
 const chipH=k=>{const s=stOf(k);return`<span class="chip" style="--c:var(${s[2]})">${s[1]}</span>`};
 const bar=(p,k)=>`<div class="bar"><i style="width:${p}%;--c:var(${stOf(k)[2]})"></i></div>`;
 function tilesHtml(){const pj=S.project||{},t=(k,ic,n,on)=>`<button class="tile${on?"":" off"}" data-tile="${k}"><span class="ic">${ic}</span>${n}</button>`;
- return`<div class="tiles">${(ghDoc()||pj.lit_file_id)?t("lit","📖","Лит сценарий",true):""}${(ghDoc()||pj.dir_file_id)?t("dir","🎬","Реж. сценарий",true):""}${(ghDoc()||pj.chars_file_id)?t("chars","👥","Персонажи",true):""}${pj.anim_file_id?t("anim","🎞","Аниматик",true):""}${t("sound","🔊","Звук",true)}${t("folder","📁","Рабочая папка",pj.folder_url)}${t("cal","📅","Календарь",true)}${t("kpp","📋","КПП",true)}${has("finance")?t("fin","💰","Смета и договора",true):""}</div>`}
+ return`<div class="tiles">${(ghDoc()||pj.lit_file_id)?t("lit","📖","Лит. сценарий",true):""}${(ghDoc()||pj.dir_file_id)?t("dir","🎬","Реж. сценарий",true):""}${(ghDoc()||pj.chars_file_id)?t("chars","👥","Персонажи",true):""}${pj.anim_file_id?t("anim","🎞","Аниматик",true):""}${t("sound","🔊","Звук",true)}${t("folder","📁","Рабочая папка",pj.folder_url)}${t("cal","📅","Календарь",true)}${has("finance")?t("fin","💰","Смета и договора",true):""}</div>`}
 function viewScenes(){const m=$("#main"),MG=manage(),SC=realScenes(),addBtn=MG?`<button class="btn" data-add="scene" style="margin-bottom:10px">＋ Добавить сцену</button>`:"";
  if(!SC.length){m.innerHTML=`<div class="wrap">${tilesHtml()}${addBtn}</div><div class="empty"><div class="big">0</div><p style="margin-top:8px">Проект ещё не загружен.</p>${S.me.owner?`<button class="btn" id="e1">Загрузить .noemtoline / .noemocean</button>`:`<p>Режиссёр пока не загрузил проект.</p>`}</div>`;const b=$("#e1");if(b)b.onclick=()=>$("#file").click();return}
  const V=vis().filter(h=>!isSnd(h)),all=V.length,pct=all?Math.round(V.reduce((s,h)=>s+(h.progress||0),0)/all):0,done=V.filter(h=>ACCEPTED.includes(h.status)).length,nt=S.shots.filter(h=>!h.topic_id&&!isSnd(h)).length;
@@ -879,11 +883,11 @@ $("#main").onclick=e=>{const t=e.target;if(t.closest&&t.closest("#smw,#kw"))retu
   const cmb=t.closest("[data-cm]");if(cmb){const c=S.cal,n=c.m+ +cmb.dataset.cm;c.y+=Math.floor(n/12);c.m=(n%12+12)%12;return viewCal()}
   const cdb=t.closest("[data-cd]");if(cdb)return calDay(cdb.dataset.cd);
   if(t.closest("[data-cdl]"))return dlAssign("");
-  const ftb=t.closest("[data-ft]");if(ftb){finTab=ftb.dataset.ft;return viewFin()}
+  const ctb=t.closest("[data-ct]");if(ctb){calTab=ctb.dataset.ct;return viewCal()}const ftb=t.closest("[data-ft]");if(ftb){finTab=ftb.dataset.ft;return viewFin()}
   const fab=t.closest("[data-fa]");if(fab)return finAct(fab.dataset.fa);
   const tl=t.closest("[data-tile]");if(tl){const k=tl.dataset.tile,pj=S.project||{};
   if(k==="folder"){if(!pj.folder_url)return toast("Пока не доступно");return openLink(pj.folder_url)}
-  if(k==="sound")return go("sound");if(k==="cal")return go("cal");if(k==="fin")return go("fin");if(k==="kpp")return go("kpp");
+  if(k==="sound")return go("sound");if(k==="cal")return go("cal");if(k==="fin")return go("fin");
   if(!(DOCF[k]&&ghDoc())&&!pj[k+"_file_id"])return toast("Пока не доступно");return go(k==="anim"?"anim":"doc-"+k)}
  const ad=t.closest("[data-add]");if(ad){const k=ad.dataset.add;if(k==="scene")return addScene();if(k==="shot")return addShot(parse()[1]);if(k==="snd")return addSound()}
  const ed=t.closest("[data-ed]");if(ed){const i=ed.dataset.ed.indexOf(":");return editItem(ed.dataset.ed.slice(0,i),ed.dataset.ed.slice(i+1))}
@@ -1127,7 +1131,7 @@ function statusList(V){let h="";const scs=S.scenes.filter(s=>s.id!==SND).sort((a
 const openShots=s=>`<div style="margin:-4px 0 10px 12px">${[...shotsOf(s.id)].sort((a,b)=>a.ord-b.ord).map(h=>shotCard(h,manage())).join("")}</div>`;
 function scenesAfter(V,SC){let ids=[];if(S.byStatus)ids=V.map(h=>h.id);else if(S.onePage)SC.forEach(s=>{if(S.open[s.id])shotsOf(s.id).forEach(h=>ids.push(h.id))});if(ids.length){paintThumbs();ensureThumbs(ids)}}
 /* --- календарь --- */
-function viewCal(){const m=$("#main"),DL=has("deadlines"),now=new Date(),pad=n=>String(n).padStart(2,"0");
+function viewCal(){$("#main").innerHTML=`<div class="wrap" style="padding-bottom:0"><div class="row"><button class="btn ${calTab==="cal"?"":"ghost"}" data-ct="cal">Календарь</button><button class="btn ${calTab==="kpp"?"":"ghost"}" data-ct="kpp">КПП</button></div></div><div id="cb"></div>`;if(calTab==="kpp")return viewKpp();const m=$("#cb"),DL=has("deadlines"),now=new Date(),pad=n=>String(n).padStart(2,"0");
  if(!S.cal)S.cal={y:now.getFullYear(),m:now.getMonth()};const y=S.cal.y,mo=S.cal.m,ym=y+"-"+pad(mo+1),today=now.toISOString().slice(0,10);
  const by={};vis().forEach(h=>{if(h.deadline)(by[h.deadline]=by[h.deadline]||[]).push(h)});
  const first=(new Date(y,mo,1).getDay()+6)%7,dim=new Date(y,mo+1,0).getDate();let cells="";for(let i=0;i<first;i++)cells+="<span></span>";
@@ -1704,7 +1708,7 @@ const dlBlock=h=>{const E=has("deadlines"),t=new Date().toISOString().slice(0,10
  const c=!h.deadline?"var(--mute)":done?"var(--s4)":od?"#e5484d":left<=2?"#e0a640":"var(--acc)";
  const sub=!h.deadline?"":done?"кадр принят":od?"просрочен на "+(-left)+" дн.":left===0?"сегодня":left===1?"завтра":"осталось "+left+" дн.";
  if(!h.deadline&&!E)return"";
- return`<div class="dlb" style="--c:${c}"><span class="dli">⏰</span><span class="grow"><div class="dll">ДЕДЛАЙН</div><div class="dlv">${h.deadline?esc(h.deadline.split("-").reverse().join(".")):"не назначен"}</div>${sub?`<div class="dls">${sub}</div>`:""}</span>${E?`<input type="date" class="inp" id="dlx" value="${h.deadline||""}" style="width:auto">${h.deadline?`<button class="ib" id="dlc" title="Снять дедлайн">✕</button>`:""}`:""}</div>`};
+ return`<div class="dlb" style="--c:${c}"><span class="dli">⏰</span><span class="grow"><div class="dll">ДЕДЛАЙН</div><div class="dlv">${h.deadline?esc(kFmt(h.deadline)):"не назначен"}</div>${sub?`<div class="dls">${sub}</div>`:""}</span>${E?`<input type="date" class="inp" id="dlx" value="${h.deadline||""}" style="width:auto">${h.deadline?`<button class="ib" id="dlc" title="Снять дедлайн">✕</button>`:""}`:""}</div>`};
 async function setDl(h,v){try{await call("set_deadline",{ids:[h.id],date:v});h.deadline=v;toast(v?"Дедлайн сохранён":"Дедлайн снят");paintHead(true)}catch(e){toast(errText(e))}}
 
 /* --- смета: встроена в приложение --- */
@@ -1719,76 +1723,106 @@ function specPick(){const F=S.fin,have=new Set(F.specs.map(s=>s.name.trim().toLo
  d.querySelectorAll("[data-sp]").forEach(b=>b.onclick=async()=>{const p=arr[+b.dataset.sp];if(have.has(p.name.trim().toLowerCase()))return toast("Уже добавлен");d.remove();
   try{F.specs.push((await call("fin_spec_add",{name:p.name})).spec);finDocs()}catch(e){toast(errText(e))}})}
 
-/* --- КПП --- */
-const KPP0=()=>({title:"КПП (Календарно-постановочный план)",film:"Прольётся свет (на ананас)",rows:[{"p": "Пред-продакшн", "t": "Литературный сценарий", "d": "31.05.23", "s": "готово", "n": ""}, {"p": "Пред-продакшн", "t": "Режиссёрский / Сценарий", "d": "31.05.23", "s": "готово", "n": ""}, {"p": "Пред-продакшн", "t": "Мизансцены и Раскадровка", "d": "25.06.23", "s": "готово", "n": ""}, {"p": "Пред-продакшн", "t": "Съёмочная группа / (худпост, худ к, акт гг)", "d": "худпост - 01.06.23 / худ к - 10.06.23 / акт гг - 10.06.23", "s": "готово", "n": ""}, {"p": "Пред-продакшн", "t": "Костюмы", "d": "25.06.23", "s": "готово", "n": ""}, {"p": "Пред-продакшн", "t": "Репетиции", "d": "01.07.23", "s": "готово", "n": ""}, {"p": "Пред-продакшн", "t": "Локации", "d": "10.06.23", "s": "готово", "n": ""}, {"p": "Продакшн", "t": "Заезд в павильон", "d": "25.07.23 - 01.07.23", "s": "готово", "n": ""}, {"p": "Продакшн", "t": "Съёмки павильон", "d": "01.07.23 – 14.07.23", "s": "готово", "n": "4смены"}, {"p": "Продакшн", "t": "Съёмки общежитие и магазин", "d": "01.07.23 – 14.07.23", "s": "готово", "n": "2 смены"}, {"p": "Продакшн", "t": "Съёмки озеро", "d": "01.07.23 – 14.07.23", "s": "готово", "n": "2 смены"}, {"p": "Продакшн", "t": "Съёмки сцена", "d": "01.07.23 – 14.07.23", "s": "готово", "n": "2 смены"}, {"p": "Продакшн", "t": "Конец съёмок", "d": "14.07.23", "s": "готово", "n": ""}, {"p": "Пост-продакшн", "t": "Монтаж и Цветокоррекция", "d": "01.10.23", "s": "готово", "n": ""}, {"p": "Пост-продакшн", "t": "Анимация", "d": "01.11.23", "s": "готово", "n": ""}, {"p": "Пост-продакшн", "t": "Звук", "d": "03.11.23", "s": "готово", "n": ""}, {"p": "Финал", "t": "Предварительная версия", "d": "01.12.23", "s": "готово", "n": ""}, {"p": "Финал", "t": "Готовая работа", "d": "01.01.24", "s": "готово", "n": ""}]});
-const KH=["Период","ЗАДАЧА","ДАТА (дедлайн)","СТАТУС","ПРИМЕЧАНИЯ"],KF=["p","t","d","s","n"];
+/* --- КПП (во вкладке «Календарь») --- */
+let calTab="cal";
+const KP=[["Пред-продакшн","#3b82f6"],["Продакшн","#e0a640"],["Пост-продакшн","#8b5cf6"],["Финал","#2c8a57"]];
+const KST0=()=>[{n:"готово",c:"#2c8a57"},{n:"в работе",c:"#1f4fd8"},{n:"на проверке",c:"#b7791f"},{n:"не начато",c:"#9aa0ac"},{n:"отложено",c:"#c8452d"}];
+const MW=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+function kFmt(v){const m=/^(\d{4})-(\d\d)-(\d\d)$/.exec(v||"");return m?(+m[3])+" "+MW[+m[2]-1]+" "+m[1]:String(v||"")}
+const kDt=x=>(x.l?x.l+": ":"")+kFmt(x.a)+(x.b?" – "+kFmt(x.b):"");
+function kNorm(o){const K={title:String(o.title||"КПП"),film:String(o.film||""),statuses:Array.isArray(o.statuses)&&o.statuses.length?o.statuses.map(x=>({n:String(x.n||""),c:String(x.c||"#9aa0ac")})):KST0(),blocks:KP.map(([n,c])=>({n,c,rows:[]}))};
+ const put=(i,r)=>K.blocks[i].rows.push({t:String(r.t||""),d:Array.isArray(r.d)?r.d.map(x=>({a:String(x.a||""),...(x.b?{b:String(x.b)}:{}),...(x.l?{l:String(x.l)}:{})})):[],s:String(r.s||""),n:String(r.n||"")});
+ if(Array.isArray(o.blocks))o.blocks.forEach((b,i)=>{if(i<4)(b.rows||[]).forEach(r=>put(i,r))});
+ else if(Array.isArray(o.rows))o.rows.forEach(r=>{let i=KP.findIndex(p=>p[0].toLowerCase()===String(r.p||"").trim().toLowerCase());if(i<0)i=0;put(i,{...r,d:[],n:[r.d,r.n].filter(Boolean).join(" · ")})});
+ return K}
+const KPP0=()=>kNorm({"title": "КПП (Календарно-постановочный план)", "film": "Прольётся свет (на ананас)", "blocks": [{"rows": [{"t": "Литературный сценарий", "d": [{"a": "2023-05-31"}], "s": "готово", "n": ""}, {"t": "Режиссёрский / Сценарий", "d": [{"a": "2023-05-31"}], "s": "готово", "n": ""}, {"t": "Мизансцены и Раскадровка", "d": [{"a": "2023-06-25"}], "s": "готово", "n": ""}, {"t": "Съёмочная группа / (худпост, худ к, акт гг)", "d": [{"a": "2023-06-01", "l": "худпост"}, {"a": "2023-06-10", "l": "худ к"}, {"a": "2023-06-10", "l": "акт гг"}], "s": "готово", "n": ""}, {"t": "Костюмы", "d": [{"a": "2023-06-25"}], "s": "готово", "n": ""}, {"t": "Репетиции", "d": [{"a": "2023-07-01"}], "s": "готово", "n": ""}, {"t": "Локации", "d": [{"a": "2023-06-10"}], "s": "готово", "n": ""}]}, {"rows": [{"t": "Заезд в павильон", "d": [{"a": "2023-07-25", "b": "2023-07-01"}], "s": "готово", "n": ""}, {"t": "Съёмки павильон", "d": [{"a": "2023-07-01", "b": "2023-07-14"}], "s": "готово", "n": "4смены"}, {"t": "Съёмки общежитие и магазин", "d": [{"a": "2023-07-01", "b": "2023-07-14"}], "s": "готово", "n": "2 смены"}, {"t": "Съёмки озеро", "d": [{"a": "2023-07-01", "b": "2023-07-14"}], "s": "готово", "n": "2 смены"}, {"t": "Съёмки сцена", "d": [{"a": "2023-07-01", "b": "2023-07-14"}], "s": "готово", "n": "2 смены"}, {"t": "Конец съёмок", "d": [{"a": "2023-07-14"}], "s": "готово", "n": ""}]}, {"rows": [{"t": "Монтаж и Цветокоррекция", "d": [{"a": "2023-10-01"}], "s": "готово", "n": ""}, {"t": "Анимация", "d": [{"a": "2023-11-01"}], "s": "готово", "n": ""}, {"t": "Звук", "d": [{"a": "2023-11-03"}], "s": "готово", "n": ""}]}, {"rows": [{"t": "Предварительная версия", "d": [{"a": "2023-12-01"}], "s": "готово", "n": ""}, {"t": "Готовая работа", "d": [{"a": "2024-01-01"}], "s": "готово", "n": ""}]}]});
+const KH=["ЗАДАЧА","ДАТА (дедлайн)","СТАТУС","ПРИМЕЧАНИЯ"];
 const kEd=()=>has("deadlines");
-async function viewKpp(){const m=$("#main");m.innerHTML=`<div class="wrap"><div class="sub">Загрузка…</div></div>`;
- try{const r=await call("kpp_get",{});S.kpp=r.kpp&&Array.isArray(r.kpp.rows)?r.kpp:KPP0()}catch(e){m.innerHTML=`<div class="empty">${esc(errText(e))}</div>`;return}
- if(parse()[0]!=="kpp")return;kppDraw()}
+const kStC=(K,n)=>{const s=K.statuses.find(x=>x.n===n);return s?s.c:"#9aa0ac"};
+async function viewKpp(){const m=$("#cb");m.innerHTML=`<div class="wrap"><div class="sub">Загрузка…</div></div>`;
+ try{const r=await call("kpp_get",{});S.kpp=r.kpp?kNorm(r.kpp):KPP0()}catch(e){m.innerHTML=`<div class="empty">${esc(errText(e))}</div>`;return}
+ if(parse()[0]!=="cal"||calTab!=="kpp")return;kppDraw()}
 function kppSave(){const st=$("#kst");if(st)st.textContent="Сохранение…";clearTimeout(kppT);kppT=setTimeout(async()=>{try{await call("kpp_save",{data:S.kpp});const s=$("#kst");if(s)s.textContent="Сохранено"}catch(e){toast(errText(e))}},900)}
-function kppDraw(){const m=$("#main"),K=S.kpp,E=kEd(),dis=E?"":" disabled";
- const cell=(r,f)=>f==="t"||f==="n"?`<textarea class="kc" rows="1" data-f="${f}"${dis}>${esc(r[f]||"")}</textarea>`:`<input class="kc" data-f="${f}" value="${esc(r[f]||"")}"${f==="p"?` list="kppP"`:f==="s"?` list="kppS"`:""}${dis}>`;
- const rows=K.rows.map((r,i)=>`<tr data-i="${i}">${KF.map(f=>`<td>${cell(r,f)}</td>`).join("")}${E?`<td class="ka"><button class="ib" data-ka="up" title="Выше">↑</button><button class="ib" data-ka="dn" title="Ниже">↓</button><button class="ib" data-ka="add" title="Добавить строку ниже">＋</button><button class="ib" data-ka="del" title="Удалить">✕</button></td>`:""}</tr>`).join("");
- m.innerHTML=`<div class="wrap" id="kw"><datalist id="kppP"><option value="Пред-продакшн"><option value="Продакшн"><option value="Пост-продакшн"><option value="Финал"></datalist><datalist id="kppS"><option value="готово"><option value="в работе"><option value="не начато"></datalist>
- <input class="kc kt1" data-k="title" value="${esc(K.title)}"${dis}><input class="kc kt2" data-k="film" value="${esc(K.film)}" placeholder="Название фильма"${dis}>
+function kppDraw(){const m=$("#cb"),K=S.kpp,E=kEd(),dis=E?"":" disabled";
+ const stChips=K.statuses.map((s,i)=>`<span class="chip" style="--c:${esc(s.c)}">${esc(s.n)}${E?`<button class="kx" data-ste="${i}" title="Изменить">✎</button><button class="kx" data-std="${i}" title="Удалить">✕</button>`:""}</span>`).join("");
+ const blocks=K.blocks.map((b,bi)=>{const rows=b.rows.map((r,i)=>{const sc=kStC(K,r.s),known=K.statuses.some(x=>x.n===r.s);
+  const dates=r.d.map((x,di)=>`<button class="kd" data-kd="${di}"${E?"":" disabled"}>${esc(kDt(x))}</button>`).join("")+(E?`<button class="kd add" data-kda="1">＋ дата</button>`:"");
+  const st=E?`<select class="kc ks" data-f="s" style="--c:${esc(sc)}"><option value=""></option>${K.statuses.map(s=>`<option${s.n===r.s?" selected":""}>${esc(s.n)}</option>`).join("")}${r.s&&!known?`<option selected>${esc(r.s)}</option>`:""}</select>`:(r.s?`<span class="chip" style="--c:${esc(sc)}">${esc(r.s)}</span>`:"");
+  return`<tr data-b="${bi}" data-i="${i}"><td><textarea class="kc" rows="1" data-f="t"${dis}>${esc(r.t)}</textarea></td><td class="kdc">${dates}</td><td class="kst">${st}</td><td><textarea class="kc" rows="1" data-f="n"${dis}>${esc(r.n)}</textarea></td>${E?`<td class="ka"><button class="ib" data-ka="up" title="Выше">↑</button><button class="ib" data-ka="dn" title="Ниже">↓</button><button class="ib" data-ka="add" title="Добавить строку ниже">＋</button><button class="ib" data-ka="del" title="Удалить">✕</button></td>`:""}</tr>`}).join("");
+  return`<div class="kb" style="--c:${b.c}"><div class="kbh">${esc(b.n)}<span>${b.rows.length}</span></div><div style="overflow-x:auto"><table class="kt"><thead><tr>${KH.map(h=>`<th>${h}</th>`).join("")}${E?`<th style="width:150px"></th>`:""}</tr></thead><tbody>${rows}</tbody></table></div>${E?`<button class="btn ghost sm" data-k="add" data-b="${bi}" style="margin:8px">＋ Пункт</button>`:""}</div>`}).join("");
+ m.innerHTML=`<div class="wrap" id="kw"><input class="kc kt1" data-k="title" value="${esc(K.title)}"${dis}><input class="kc kt2" data-k="film" value="${esc(K.film)}" placeholder="Название фильма"${dis}>
  <div class="row" style="margin:8px 0"><button class="btn sm" data-k="exp">⇩ Экспорт</button>${E?`<button class="btn ghost sm" data-k="imp">⇪ Импорт .noemkpp</button>`:""}<span class="sub" id="kst" style="margin-left:auto"></span></div>
- <div style="overflow-x:auto"><table class="kt"><thead><tr>${KH.map(h=>`<th>${h}</th>`).join("")}${E?`<th style="width:150px"></th>`:""}</tr></thead><tbody>${rows}</tbody></table></div>
- ${E?`<button class="btn" data-k="new" style="margin-top:10px">＋ Строка</button>`:""}</div>`;
+ <div class="row" style="flex-wrap:wrap;gap:6px;margin:6px 0 12px"><span class="sub">Статусы:</span>${stChips}${E?`<button class="chip" data-k="stadd" style="--c:var(--acc)">＋ статус</button>`:""}</div>${blocks}</div>`;
  const w=$("#kw"),grow=t=>{t.style.height="auto";t.style.height=t.scrollHeight+2+"px"};w.querySelectorAll("textarea").forEach(grow);
- w.oninput=e=>{const t=e.target,tr=t.closest("tr");if(t.dataset.k){K[t.dataset.k]=t.value;return kppSave()}if(!tr||!t.dataset.f)return;K.rows[+tr.dataset.i][t.dataset.f]=t.value;if(t.tagName==="TEXTAREA")grow(t);kppSave()};
- w.onclick=async e=>{const b=e.target.closest("button");if(!b)return;const tr=b.closest("tr"),i=tr?+tr.dataset.i:K.rows.length-1,R=K.rows,blank=()=>({p:(R[i]||{}).p||"",t:"",d:"",s:"",n:""});
-  if(b.dataset.k==="exp")return kppExport();if(b.dataset.k==="imp")return kppImport();
-  if(b.dataset.k==="new")R.push(blank());
-  else if(b.dataset.ka==="up"){if(i<1)return;[R[i-1],R[i]]=[R[i],R[i-1]]}
-  else if(b.dataset.ka==="dn"){if(i>=R.length-1)return;[R[i+1],R[i]]=[R[i],R[i+1]]}
-  else if(b.dataset.ka==="add")R.splice(i+1,0,blank());
-  else if(b.dataset.ka==="del"){if(!await askYes("Удалить пункт «"+(R[i].t||"без названия")+"»?"))return;R.splice(i,1)}
+ w.oninput=e=>{const t=e.target,tr=t.closest("tr");if(t.dataset.k){K[t.dataset.k]=t.value;return kppSave()}if(!tr||!t.dataset.f)return;K.blocks[+tr.dataset.b].rows[+tr.dataset.i][t.dataset.f]=t.value;if(t.tagName==="TEXTAREA")grow(t);else t.style.setProperty("--c",kStC(K,t.value));kppSave()};
+ w.onclick=async e=>{const b=e.target.closest("button");if(!b)return;const d=b.dataset,tr=b.closest("tr"),R=tr?K.blocks[+tr.dataset.b].rows:null,i=tr?+tr.dataset.i:0;
+  if(d.k==="exp")return kppExport();if(d.k==="imp")return kppImport();if(d.k==="stadd")return kStSheet(-1);if(d.ste!==undefined)return kStSheet(+d.ste);
+  if(d.std!==undefined){const o=K.statuses[+d.std];if(!await askYes("Удалить статус «"+o.n+"»? У пунктов с этим статусом он будет сброшен."))return;K.statuses.splice(+d.std,1);K.blocks.forEach(b=>b.rows.forEach(r=>{if(r.s===o.n)r.s=""}))}
+  else if(d.k==="add")K.blocks[+d.b].rows.push({t:"",d:[],s:"",n:""});
+  else if(d.ka==="up"){if(i<1)return;[R[i-1],R[i]]=[R[i],R[i-1]]}
+  else if(d.ka==="dn"){if(i>=R.length-1)return;[R[i+1],R[i]]=[R[i],R[i+1]]}
+  else if(d.ka==="add")R.splice(i+1,0,{t:"",d:[],s:"",n:""});
+  else if(d.ka==="del"){if(!await askYes("Удалить пункт «"+(R[i].t||"без названия")+"»?"))return;R.splice(i,1)}
+  else if(d.kd!==undefined)return kDateSheet(R[i],+d.kd);
+  else if(d.kda)return kDateSheet(R[i],-1);
   else return;kppSave();kppDraw()}}
+function kStSheet(i){const K=S.kpp,s=i<0?{n:"",c:"#2c8a57"}:K.statuses[i];
+ const d=sheet(`<div class="h2" style="margin-top:0">${i<0?"Новый статус":"Статус"}</div><input class="inp" id="sn" value="${esc(s.n)}" placeholder="Название" style="width:100%"><div class="row" style="margin:10px 0"><span class="sub">Цвет</span><input type="color" id="sc" value="${esc(s.c)}"></div><button class="btn" id="ok" style="width:100%">Сохранить</button>`);
+ d.querySelector("#ok").onclick=()=>{const n=d.querySelector("#sn").value.trim(),c=d.querySelector("#sc").value;if(!n)return;if(K.statuses.some((x,j)=>j!==i&&x.n===n))return toast("Такой статус уже есть");
+  if(i<0)K.statuses.push({n,c});else{const o=K.statuses[i].n;K.statuses[i]={n,c};if(o!==n)K.blocks.forEach(b=>b.rows.forEach(r=>{if(r.s===o)r.s=n}))}d.remove();kppSave();kppDraw()}}
+function kDateSheet(r,di){const x=di<0?{a:"",b:"",l:""}:r.d[di];
+ const d=sheet(`<div class="h2" style="margin-top:0">${di<0?"Новая дата":"Дата"}</div><div class="sub">Метка (необязательно, например «худпост»)</div><input class="inp" id="dl" value="${esc(x.l||"")}" style="width:100%"><div class="sub" style="margin-top:10px">Дата</div><input type="date" class="inp" id="da" value="${esc(x.a||"")}" style="width:100%"><div class="sub" style="margin-top:10px">По (если это период)</div><input type="date" class="inp" id="db" value="${esc(x.b||"")}" style="width:100%"><div class="row" style="margin-top:12px"><button class="btn grow" id="ok">Сохранить</button>${di<0?"":`<button class="btn ghost" id="rm">Удалить</button>`}</div>`);
+ const fin=()=>{d.remove();kppSave();kppDraw()};
+ d.querySelector("#ok").onclick=()=>{const a=d.querySelector("#da").value,b=d.querySelector("#db").value,l=d.querySelector("#dl").value.trim();if(!a)return toast("Выберите дату");const n={a};if(b)n.b=b;if(l)n.l=l;if(di<0)r.d.push(n);else r.d[di]=n;fin()};
+ const rm=d.querySelector("#rm");if(rm)rm.onclick=()=>{r.d.splice(di,1);fin()}}
 const kName=ext=>"КПП_"+((S.kpp.film||"фильм").replace(/[«»"\\\/:*?<>|]/g,"").trim().replace(/\s+/g,"_"))+"."+ext;
 function kDl(blob,name){const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
 function kppExport(){const d=sheet(`<div class="h2" style="margin-top:0">Экспорт КПП</div>${[["docx","Word (.docx)"],["pdf","PDF"],["xlsx","Excel (.xlsx)"],["noemkpp","Файл .noemkpp (json)"]].map(([k,n])=>`<button class="card" data-e="${k}" style="width:100%;text-align:left"><span class="grow"><div class="t">${n}</div></span></button>`).join("")}`);
  d.querySelectorAll("[data-e]").forEach(b=>b.onclick=async()=>{const k=b.dataset.e,K=S.kpp;d.remove();
   try{if(k==="docx")kDl(await kppDocx(K),kName("docx"));else if(k==="xlsx")kDl(await kppXlsx(K),kName("xlsx"));else if(k==="pdf")kDl(await kppPdf(K),kName("pdf"));
-   else kDl(new Blob([JSON.stringify({type:"noemkpp",v:1,title:K.title,film:K.film,rows:K.rows},null,1)],{type:"application/json"}),kName("noemkpp"))}catch(e){toast("Не удалось: "+(e.message||e))}})}
+   else kDl(new Blob([JSON.stringify({type:"noemkpp",v:2,title:K.title,film:K.film,statuses:K.statuses,blocks:K.blocks.map(b=>({n:b.n,rows:b.rows}))},null,1)],{type:"application/json"}),kName("noemkpp"))}catch(e){toast("Не удалось: "+(e.message||e))}})}
 function kppImport(){const i=document.createElement("input");i.type="file";i.accept=".noemkpp,.json,application/json";
  i.onchange=async()=>{const f=i.files[0];if(!f)return;let o;try{o=JSON.parse(await f.text())}catch(e){return toast("Не удалось прочитать файл")}
-  if(!o||!Array.isArray(o.rows))return toast("Это не файл КПП");if(!await askYes("Заменить текущую таблицу КПП данными из файла?"))return;
-  S.kpp={title:String(o.title||"КПП"),film:String(o.film||""),rows:o.rows.map(r=>({p:String(r.p||""),t:String(r.t||""),d:String(r.d||""),s:String(r.s||""),n:String(r.n||"")}))};kppSave();kppDraw()};i.click()}
+  if(!o||!(Array.isArray(o.rows)||Array.isArray(o.blocks)))return toast("Это не файл КПП");if(!await askYes("Заменить текущую таблицу КПП данными из файла?"))return;
+  S.kpp=kNorm(o);kppSave();kppDraw()};i.click()}
 const xe=s=>String(s??"").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,"").replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));
 const XH='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 async function kZip(files,mime){const Z=ZipW();for(const[n,t]of files)await Z.add(n,new Blob([t]));return new Blob([Z.finish()],{type:mime})}
-async function kppDocx(K){const W=[1750,2950,2250,1150,1538],
- para=(t,o={})=>`<w:p><w:pPr>${o.c?'<w:jc w:val="center"/>':""}<w:spacing w:before="0" w:after="${o.a||0}"/></w:pPr>${String(t||"").split("\n").map((x,i)=>`<w:r><w:rPr>${o.b?"<w:b/>":""}<w:sz w:val="${o.z||22}"/></w:rPr>${i?"<w:br/>":""}<w:t xml:space="preserve">${xe(x)}</w:t></w:r>`).join("")}</w:p>`,
- cell=(t,w,h)=>`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${h?'<w:shd w:val="clear" w:color="auto" w:fill="E7E6E6"/>':""}<w:vAlign w:val="center"/></w:tcPr>${para(t,{b:h,z:20})}</w:tc>`,
- row=(a,h)=>`<w:tr>${h?"<w:trPr><w:tblHeader/></w:trPr>":""}${a.map((t,i)=>cell(t,W[i],h)).join("")}</w:tr>`,
+const kList=K=>{const o=[];K.blocks.forEach((b,bi)=>{o.push({b,bi});b.rows.forEach(r=>o.push({r:[r.t,r.d.map(kDt).join("\n"),r.s,r.n]}))});return o};
+async function kppDocx(K){const W=[3200,2900,1300,2238],
+ para=(t,o={})=>`<w:p><w:pPr>${o.c?'<w:jc w:val="center"/>':""}<w:spacing w:before="0" w:after="${o.a||0}"/></w:pPr>${String(t||"").split("\n").map((x,i)=>`<w:r><w:rPr>${o.b?"<w:b/>":""}${o.w?'<w:color w:val="FFFFFF"/>':""}<w:sz w:val="${o.z||22}"/></w:rPr>${i?"<w:br/>":""}<w:t xml:space="preserve">${xe(x)}</w:t></w:r>`).join("")}</w:p>`,
+ cell=(t,w,o={})=>`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${o.span?`<w:gridSpan w:val="${o.span}"/>`:""}${o.f?`<w:shd w:val="clear" w:color="auto" w:fill="${o.f}"/>`:""}<w:vAlign w:val="center"/></w:tcPr>${para(t,{b:o.h,w:o.w,z:o.z||20})}</w:tc>`,
+ row=(a,h)=>`<w:tr>${h?"<w:trPr><w:tblHeader/></w:trPr>":""}${a.map((t,i)=>cell(t,W[i],{h,f:h?"E7E6E6":""})).join("")}</w:tr>`,
  bd=["top","left","bottom","right","insideH","insideV"].map(k=>`<w:${k} w:val="single" w:sz="4" w:space="0" w:color="000000"/>`).join("");
- const body=para(K.title,{b:1,c:1,z:32,a:80})+(K.film?para(K.film,{c:1,z:26,a:200}):"")+`<w:tbl><w:tblPr><w:tblW w:w="9638" w:type="dxa"/><w:tblBorders>${bd}</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${W.map(w=>`<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${row(KH,1)}${K.rows.map(r=>row(KF.map(f=>r[f]),0)).join("")}</w:tbl>${para("")}`;
+ const trs=kList(K).map(x=>x.b?`<w:tr><w:trPr><w:cantSplit/></w:trPr>${cell(x.b.n,9638,{span:4,f:x.b.c.slice(1),w:1,h:1,z:24})}</w:tr>`:row(x.r,0)).join("");
+ const body=para(K.title,{b:1,c:1,z:32,a:80})+(K.film?para(K.film,{c:1,z:26,a:200}):"")+`<w:tbl><w:tblPr><w:tblW w:w="9638" w:type="dxa"/><w:tblBorders>${bd}</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${W.map(w=>`<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${row(KH,1)}${trs}</w:tbl>${para("")}`;
  return kZip([["[Content_Types].xml",XH+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
   ["_rels/.rels",XH+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'],
   ["word/document.xml",XH+`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`]],"application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
-async function kppXlsx(K){const cols="ABCDE",W=[18,42,30,14,32],
- c=(r,i,t,s)=>`<c r="${cols[i]}${r}" t="inlineStr" s="${s}"><is><t xml:space="preserve">${xe(t)}</t></is></c>`;
- let rows=`<row r="1" ht="24" customHeight="1">${c(1,0,K.title,1)}</row><row r="2">${c(2,0,K.film,1)}</row><row r="4">${KH.map((h,i)=>c(4,i,h,2)).join("")}</row>`;
- K.rows.forEach((r,j)=>{const n=5+j;rows+=`<row r="${n}">${KF.map((f,i)=>c(n,i,r[f],3)).join("")}</row>`});
- const sh=XH+`<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols>${W.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData>${rows}</sheetData><mergeCells count="2"><mergeCell ref="A1:E1"/><mergeCell ref="A2:E2"/></mergeCells></worksheet>`;
- const st=XH+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="14"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE7E6E6"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+async function kppXlsx(K){const cols="ABCD",W=[42,34,16,32],c=(r,i,t,s)=>`<c r="${cols[i]}${r}" t="inlineStr" s="${s}"><is><t xml:space="preserve">${xe(t)}</t></is></c>`;
+ let rows=`<row r="1" ht="24" customHeight="1">${c(1,0,K.title,1)}</row><row r="2">${c(2,0,K.film,1)}</row><row r="4">${KH.map((h,i)=>c(4,i,h,2)).join("")}</row>`,n=5,mg=['<mergeCell ref="A1:D1"/>','<mergeCell ref="A2:D2"/>'];
+ kList(K).forEach(x=>{if(x.b){rows+=`<row r="${n}" ht="20" customHeight="1">${c(n,0,x.b.n,4+x.bi)}${[1,2,3].map(i=>c(n,i,"",4+x.bi)).join("")}</row>`;mg.push(`<mergeCell ref="A${n}:D${n}"/>`)}else rows+=`<row r="${n}">${x.r.map((t,i)=>c(n,i,t,3)).join("")}</row>`;n++});
+ const sh=XH+`<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols>${W.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData>${rows}</sheetData><mergeCells count="${mg.length}">${mg.join("")}</mergeCells></worksheet>`;
+ const fills=K.blocks.map(b=>`<fill><patternFill patternType="solid"><fgColor rgb="FF${b.c.slice(1).toUpperCase()}"/><bgColor indexed="64"/></patternFill></fill>`).join("");
+ const bx=K.blocks.map((b,i)=>`<xf numFmtId="0" fontId="3" fillId="${3+i}" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>`).join("");
+ const st=XH+`<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="4"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="14"/><name val="Calibri"/></font><font><b/><sz val="12"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE7E6E6"/><bgColor indexed="64"/></patternFill></fill>${fills}</fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>${bx}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
  return kZip([["[Content_Types].xml",XH+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
   ["_rels/.rels",XH+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
   ["xl/workbook.xml",XH+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="КПП" sheetId="1" r:id="rId1"/></sheets></workbook>'],
   ["xl/_rels/workbook.xml.rels",XH+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
   ["xl/worksheets/sheet1.xml",sh],["xl/styles.xml",st]],"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
-async function kppPdf(K){const PW=1240,PH=1754,M=90,ff="sans-serif",cw=[.15,.29,.22,.12,.22].map(x=>x*(PW-2*M)),pages=[];let cv,cx,y;
- const np=()=>{cv=document.createElement("canvas");cv.width=PW;cv.height=PH;cx=cv.getContext("2d");cx.fillStyle="#fff";cx.fillRect(0,0,PW,PH);cx.fillStyle="#000";cx.textBaseline="top";pages.push(cv);y=M};
+async function kppPdf(K){const PW=1240,PH=1754,M=90,ff="sans-serif",cw=[.34,.30,.14,.22].map(x=>x*(PW-2*M)),pages=[];let cv,cx,y;
+ const np=()=>{cv=document.createElement("canvas");cv.width=PW;cv.height=PH;cx=cv.getContext("2d");cx.fillStyle="#fff";cx.fillRect(0,0,PW,PH);cx.fillStyle="#000";cx.textBaseline="top";cx.textAlign="left";pages.push(cv);y=M};
  const wrap=(t,w)=>{const out=[];String(t||"").split("\n").forEach(par=>{let line="";par.split(/\s+/).forEach(wd=>{const s=line?line+" "+wd:wd;if(cx.measureText(s).width>w-16&&line){out.push(line);line=wd}else line=s});out.push(line)});return out};
  const draw=(a,h)=>{cx.font=(h?"bold ":"")+"24px "+ff;const Lh=a.map((t,i)=>wrap(t,cw[i])),rh=Math.max(...Lh.map(l=>l.length))*32+16;
   if(y+rh>PH-M&&y>M){np();draw(KH,1);cx.font=(h?"bold ":"")+"24px "+ff}
   if(h){cx.fillStyle="#e7e6e6";cx.fillRect(M,y,PW-2*M,rh)}
   let x=M;cx.fillStyle="#000";cx.strokeStyle="#000";cx.lineWidth=1.5;
   Lh.forEach((l,i)=>{cx.strokeRect(x,y,cw[i],rh);l.forEach((s,j)=>cx.fillText(s,x+8,y+8+j*32));x+=cw[i]});y+=rh};
+ const band=b=>{if(y+160>PH-M&&y>M){np();draw(KH,1)}cx.fillStyle=b.c;cx.fillRect(M,y,PW-2*M,48);cx.fillStyle="#fff";cx.font="bold 28px "+ff;cx.fillText(b.n,M+12,y+10);cx.strokeStyle="#000";cx.lineWidth=1.5;cx.strokeRect(M,y,PW-2*M,48);cx.fillStyle="#000";y+=48};
  np();cx.textAlign="center";cx.font="bold 40px "+ff;wrap(K.title,PW-2*M).forEach(s=>{cx.fillText(s,PW/2,y);y+=50});
  if(K.film){cx.font="32px "+ff;wrap(K.film,PW-2*M).forEach(s=>{cx.fillText(s,PW/2,y);y+=42})}
- cx.textAlign="left";y+=30;draw(KH,1);K.rows.forEach(r=>draw(KF.map(f=>r[f]),0));
+ cx.textAlign="left";y+=30;draw(KH,1);kList(K).forEach(x=>x.b?band(x.b):draw(x.r,0));
  const imgs=[];for(const c of pages)imgs.push(new Uint8Array(await new Promise(r=>c.toBlob(b=>b.arrayBuffer().then(r),"image/jpeg",.92))));
  const enc=new TextEncoder(),ch=[],offs=[];let pos=0;const put=d=>{const b=typeof d==="string"?enc.encode(d):d;ch.push(b);pos+=b.length};
  const obj=(id,head,s)=>{offs[id]=pos;put(`${id} 0 obj\n${head}\n`);if(s){put("stream\n");put(s);put("\nendstream\n")}put("endobj\n")};
