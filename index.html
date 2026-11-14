@@ -128,11 +128,12 @@ const NATIVE_BACK = !!(TGW && TGW.BackButton && TGW.isVersionAtLeast && TGW.isVe
 
 const ST = [["todo","Не начат","--s0"],["work","В работе","--s1"],["review","На проверке","--s2"],["fix","Правки","--s3"],["done","Принят","--s4"],["ship","Отгрузить","--s5"],["shipped","Отгружен","--s6"],["finished","Завершён","--s7"],["error","Ошибка","--s8"]];
 const ACCEPTED=["done","ship","shipped","finished"];
-const PERM_L=[["assign","Назначать и снимать с задачи"],["fix","Выдавать правки"],["status","Менять любые статусы"],["invite","Приглашать в группу"],["del_any","Удалять любые сообщения"],["pin_any","Закреплять любые сообщения"],["tasks","Управление задачами (сцены, кадры, звук)"],["loud","Громкие сообщения (бот пересылает исполнителю в личку)"],["export","Экспорт и загрузка бэкапа проекта"],["del_users","Удалять и возвращать пользователей"]];
+const PERM_L=[["assign","Назначать и снимать с задачи"],["fix","Выдавать правки"],["status","Менять любые статусы"],["invite","Приглашать в группу"],["del_any","Удалять любые сообщения"],["pin_any","Закреплять любые сообщения"],["tasks","Управление задачами (сцены, кадры, звук)"],["loud","Громкие сообщения (бот пересылает исполнителю в личку)"],["export","Экспорт и загрузка бэкапа проекта"],["del_users","Удалять и возвращать пользователей"],["deadlines","Дедлайны"],["finance","Смета и договора"]];
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const S = { stages:[], ss:{}, stage:null, roles:[], showAll:false, me:null, scenes:[], shots:[], members:[], project:null, chat:null, bound:false, thumbs:{}, msgs:[],
   unread:0, sinceShots:0, sinceMsgs:0, curShot:null, pendingFile:null, asFile:false, fixMode:false, busy:false };
+S.open={};try{S.byStatus=localStorage.getItem("noem_byStatus")==="1";S.onePage=localStorage.getItem("noem_onePage")==="1"}catch(e){}
 S.manage=false;try{S.manage=localStorage.getItem("noem_manage")==="1"}catch(e){}
 const stOf = k => ST.find(s => s[0] === k) || ST[0];
 const fmtSize = n => !n ? "" : n < 1048576 ? Math.round(n/1024) + " КБ" : (n/1048576).toFixed(n < 10485760 ? 1 : 0) + " МБ";
@@ -171,7 +172,7 @@ const has=p=>S.me.owner||(S.me.perms||[]).includes(p);
 const SND="snd",isSnd=h=>!!h&&h.scene===SND,realScenes=()=>S.scenes.filter(s=>s.id!==SND);
 const manage=()=>!!S.manage&&!!S.me&&!!(S.me.owner||(S.me.perms||[]).includes("tasks"));
 const cfgOn=v=>v==="shot"||!!S.me.owner||has("tasks");
-const isSub=v=>["scene","shot","doc","anim","sound"].includes(v);
+const isSub=v=>["scene","shot","doc","anim","sound","cal","fin"].includes(v);
 const shotTitle=h=>(isSnd(h)?"Задача ":"Кадр ")+h.num;
 const noUn=()=>!S.me.owner&&(S.me.perms||[]).includes("hide_unassigned");
 const seeAll=()=>!!S.off||S.me.owner||manage()||(!noUn()&&(S.me.role==="Продюсер"||S.showAll));
@@ -385,12 +386,12 @@ function topicsSheet(){
 function go(h){location.hash=h}
 function parse(){const h=location.hash.slice(1)||"scenes",i=h.indexOf("-");return i<0?[h,""]:[h.slice(0,i),h.slice(i+1)]}
 function route(){if(!S.me)return;const[v,id]=parse();
- const sub=isSub(v);$("#main").classList.toggle("pdfmode",v==="doc");$("#back").hidden=NATIVE_BACK||!sub;$("#cfg").hidden=!cfgOn(v);$("#bell").hidden=false;updBell();$("#nav").hidden=v==="shot"||v==="doc";
+ const sub=isSub(v);$("#main").classList.toggle("pdfmode",v==="doc");$("#back").hidden=NATIVE_BACK||!sub;$("#cfg").hidden=!cfgOn(v);$("#bell").hidden=false;updBell();$("#nav").hidden=v==="shot"||v==="doc"||v==="fin";
  if(NATIVE_BACK){sub?TGW.BackButton.show():TGW.BackButton.hide()}
  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.r===(v==="team"?"team":"scenes")));
- $("#ttl").textContent=v==="scene"?"Сцена":v==="shot"?"Кадр":v==="doc"?"Сценарий":v==="anim"?"Аниматик":v==="sound"?"Звук":v==="team"?"Команда":(S.project&&S.project.title)||"Noem.line";
+ $("#ttl").textContent=v==="scene"?"Сцена":v==="shot"?"Кадр":v==="doc"?"Сценарий":v==="anim"?"Аниматик":v==="sound"?"Звук":v==="cal"?"Календарь":v==="fin"?"Смета и договора":v==="team"?"Команда":(S.project&&S.project.title)||"Noem.line";
  S.curShot=v==="shot"?id:null;S.sel=new Set();updSel();if(v!=="shot")$("#foot").innerHTML="";
- if(v==="scene")return viewScene(id);if(v==="shot")return viewShot(id);if(v==="doc")return viewDoc(id);if(v==="anim")return viewAnim();if(v==="sound")return viewSound();if(v==="team")return viewTeam();viewScenes()}
+ if(v==="scene")return viewScene(id);if(v==="shot")return viewShot(id);if(v==="doc")return viewDoc(id);if(v==="anim")return viewAnim();if(v==="sound")return viewSound();if(v==="cal")return viewCal();if(v==="fin")return viewFin();if(v==="team")return viewTeam();viewScenes()}
 function goBack(){const[v,id]=parse();if(v==="doc")return go("scenes");if(v==="shot"){const h=S.shots.find(x=>x.id===id);go(h?(isSnd(h)?"sound":"scene-"+h.scene):"scenes")}else go("scenes")}
 $("#cfg").onclick=()=>parse()[0]==="shot"?shotSheet():appSheet();$("#bell").onclick=notifSheet;$("#back").onclick=goBack;if(NATIVE_BACK)TGW.BackButton.onClick(goBack);
 $("#nav").onclick=e=>{const r=e.target.dataset&&e.target.dataset.r;if(r)go(r)};
@@ -401,19 +402,18 @@ addEventListener("hashchange",route);
 const chipH=k=>{const s=stOf(k);return`<span class="chip" style="--c:var(${s[2]})">${s[1]}</span>`};
 const bar=(p,k)=>`<div class="bar"><i style="width:${p}%;--c:var(${stOf(k)[2]})"></i></div>`;
 function tilesHtml(){const pj=S.project||{},t=(k,ic,n,on)=>`<button class="tile${on?"":" off"}" data-tile="${k}"><span class="ic">${ic}</span>${n}</button>`;
- return`<div class="tiles">${t("lit","📖","Лит сценарий",ghDoc()||pj.lit_file_id)}${t("dir","🎬","Реж. сценарий",ghDoc()||pj.dir_file_id)}${t("chars","👥","Персонажи",ghDoc()||pj.chars_file_id)}${t("anim","🎞","Аниматик",pj.anim_file_id)}${t("sound","🔊","Звук",true)}${t("folder","📁","Рабочая папка",pj.folder_url)}</div>`}
+ return`<div class="tiles">${t("lit","📖","Лит сценарий",ghDoc()||pj.lit_file_id)}${t("dir","🎬","Реж. сценарий",ghDoc()||pj.dir_file_id)}${t("chars","👥","Персонажи",ghDoc()||pj.chars_file_id)}${t("anim","🎞","Аниматик",pj.anim_file_id)}${t("sound","🔊","Звук",true)}${t("folder","📁","Рабочая папка",pj.folder_url)}${t("cal","📅","Календарь",true)}${has("finance")?t("fin","💰","Смета и договора",true):""}</div>`}
 function viewScenes(){const m=$("#main"),MG=manage(),SC=realScenes(),addBtn=MG?`<button class="btn" data-add="scene" style="margin-bottom:10px">＋ Добавить сцену</button>`:"";
  if(!SC.length){m.innerHTML=`<div class="wrap">${tilesHtml()}${addBtn}</div><div class="empty"><div class="big">0</div><p style="margin-top:8px">Проект ещё не загружен.</p>${S.me.owner?`<button class="btn" id="e1">Загрузить .noemtoline / .noemocean</button>`:`<p>Режиссёр пока не загрузил проект.</p>`}</div>`;const b=$("#e1");if(b)b.onclick=()=>$("#file").click();return}
  const V=vis().filter(h=>!isSnd(h)),all=V.length,pct=all?Math.round(V.reduce((s,h)=>s+(h.progress||0),0)/all):0,done=V.filter(h=>ACCEPTED.includes(h.status)).length,nt=S.shots.filter(h=>!h.topic_id&&!isSnd(h)).length;
- m.innerHTML=`<div class="wrap">${tilesHtml()}${showToggle()}${addBtn}<div class="card" style="display:block"><div class="row" style="justify-content:space-between"><span class="big">${pct}%</span><span class="sub">принято ${done} из ${all} кадров</span></div>${bar(pct,"work")}</div>`+
+ m.innerHTML=`<div class="wrap">${tilesHtml()}${showToggle()}${viewTg()}${addBtn}<div class="card" style="display:block"><div class="row" style="justify-content:space-between"><span class="big">${pct}%</span><span class="sub">принято ${done} из ${all} кадров</span></div>${bar(pct,"work")}</div>`+
  (S.me.owner&&nt&&S.bound?`<div class="note">Кадров без топика в Telegram: ${nt}. <button class="chip" data-act="topics" style="--c:var(--acc)">Создать топики</button></div>`:"")+
- (V.length||seeAll()?"":`<div class="empty">На вас пока нет назначенных кадров.</div>`)+[...SC].filter(s=>S.me.owner||MG||shotsOf(s.id).length).sort((a,b)=>a.ord-b.ord).map(s=>{const g=sceneAgg(s.id),c=`<button class="card" data-go="scene-${s.id}"><span class="num">${esc(s.num||"–")}</span><span class="grow"><div class="t">${esc(s.title)}</div><div class="row" style="margin-top:3px">${chipH(g.st)}<span class="sub">${g.n} кадр.</span><span class="pct" style="margin-left:auto">${g.pct}%</span></div>${bar(g.pct,g.st)}</span></button>`;
-  return MG?`<div class="cw">${c}<button class="ib" data-ed="scene:${esc(s.id)}" title="Изменить" style="color:var(--ink)">✎</button><button class="ib" data-rm="scene:${esc(s.id)}" title="Удалить сцену">✕</button></div>`:c}).join("")+`</div>`}
+ (V.length||seeAll()?"":`<div class="empty">На вас пока нет назначенных кадров.</div>`)+(S.byStatus?statusList(V):"")+(S.byStatus?[]:[...SC]).filter(s=>S.me.owner||MG||shotsOf(s.id).length).sort((a,b)=>a.ord-b.ord).map(s=>{const g=sceneAgg(s.id),c=`<button class="card" ${S.onePage?`data-tg="${esc(s.id)}"`:`data-go="scene-${s.id}"`}><span class="num">${esc(s.num||"–")}</span><span class="grow"><div class="t">${S.onePage?(S.open[s.id]?"▾ ":"▸ "):""}${esc(s.title)}</div><div class="row" style="margin-top:3px">${chipH(g.st)}<span class="sub">${g.n} кадр.</span><span class="pct" style="margin-left:auto">${g.pct}%</span></div>${bar(g.pct,g.st)}</span></button>`;
+  return (MG?`<div class="cw">${c}<button class="ib" data-ed="scene:${esc(s.id)}" title="Изменить" style="color:var(--ink)">✎</button><button class="ib" data-rm="scene:${esc(s.id)}" title="Удалить сцену">✕</button></div>`:c)+(S.onePage&&S.open[s.id]?openShots(s):"")}).join("")+`</div>`;scenesAfter(V,SC)}
 function viewScene(id){const s=S.scenes.find(x=>x.id===id),m=$("#main"),MG=manage();if(!s){m.innerHTML=`<div class="empty">Сцена не найдена</div>`;return}
  const g=sceneAgg(id),list=[...shotsOf(id)].sort((a,b)=>a.ord-b.ord);$("#ttl").textContent="Сцена "+(s.num||"");
  m.innerHTML=`<div class="wrap">${showToggle()}<div class="card" style="display:block"><div class="t" style="white-space:normal">${esc(s.title)}</div>${s.info?`<div class="sub">${esc(s.info)}</div>`:""}<div class="row" style="margin-top:6px">${chipH(g.st)}<span class="pct">${g.pct}%</span></div>${bar(g.pct,g.st)}</div>${MG?`<button class="btn" data-add="shot" style="margin-bottom:10px">＋ Добавить кадр</button>`:""}`+
- list.map(h=>{const c=`<button class="card" data-go="shot-${h.id}"><span class="th" data-th="${h.id}"></span><span class="grow"><div class="row"><span class="num" style="min-width:0">${esc(h.num)}</span>${chipH(h.status)}<span class="pct" style="margin-left:auto">${h.progress||0}%</span></div><div class="sub">${esc(h.action||h.scale||"—")}</div><div class="avas">${(h.assignees||[]).map(a=>`<span class="ava">${esc(ini(a))}</span>`).join("")}</div>${bar(h.progress||0,h.status)}</span></button>`;
-  return MG?`<div class="cw">${c}<button class="ib" data-ed="shot:${esc(h.id)}" title="Изменить" style="color:var(--ink)">✎</button><button class="ib" data-rm="shot:${esc(h.id)}" title="Удалить кадр">✕</button></div>`:c}).join("")+`</div>`;
+ list.map(h=>shotCard(h,MG)).join("")+`</div>`;
  paintThumbs();ensureThumbs(list.map(h=>h.id))}
 function teamGroups(){const g=[["Режиссёр",S.members.filter(p=>p.is_owner)]];
  S.roles.forEach(r=>g.push([r.name,S.members.filter(p=>!p.is_owner&&p.role===r.name)]));
@@ -675,7 +675,8 @@ function notifSheet(){const d=sheet(`<div class="row" style="justify-content:spa
   if(n.shot_id){d.remove();if(S.shots.some(h=>h.id===n.shot_id))go("shot-"+n.shot_id);else toast("Кадр больше не найден")}else paint()})}
 function shotSheet(){const h=S.shots.find(x=>x.id===S.curShot);if(!h)return;
  const own=S.me.owner||S.me.role==="Продюсер";
- const d=sheet(`<div class="h2" style="margin-top:0">Настройки кадра ${esc(h.num)}</div>${h.topic_id&&S.chat?`<button class="card" id="ot" style="width:100%;text-align:left">↗ Открыть топик в Telegram</button>`:`<div class="sub">Топик создастся при первом сообщении</div>`}${S.me.owner?`<button class="card" id="si" style="width:100%;text-align:left;margin-top:10px">⇪ Загрузить .noemtoline / .noemocean</button>`:""}${own?"":`<label class="note" style="display:block;margin-top:12px"><input type="checkbox" id="sa2" ${S.showAll?"checked":""}> Показать задачи, на которые вы не назначены</label><div class="sub" style="-webkit-line-clamp:unset">Чат таких кадров можно читать, но писать в него и менять статус нельзя.</div>`}`);
+ const d=sheet(`<div class="h2" style="margin-top:0">Настройки кадра ${esc(h.num)}</div>${h.topic_id&&S.chat?`<button class="card" id="ot" style="width:100%;text-align:left">↗ Открыть топик в Telegram</button>`:`<div class="sub">Топик создастся при первом сообщении</div>`}${S.me.owner?`<button class="card" id="si" style="width:100%;text-align:left;margin-top:10px">⇪ Загрузить .noemtoline / .noemocean</button>`:""}${has("deadlines")?`<div class="sub" style="margin-top:12px">Дедлайн</div><div class="row"><input type="date" class="inp" id="dlv" value="${h.deadline||""}"><button class="btn sm" id="dls">Сохранить</button></div>`:""}${own?"":`<label class="note" style="display:block;margin-top:12px"><input type="checkbox" id="sa2" ${S.showAll?"checked":""}> Показать задачи, на которые вы не назначены</label><div class="sub" style="-webkit-line-clamp:unset">Чат таких кадров можно читать, но писать в него и менять статус нельзя.</div>`}`);
+ const dls=d.querySelector("#dls");if(dls)dls.onclick=async()=>{const v=d.querySelector("#dlv").value||null;try{await call("set_deadline",{ids:[h.id],date:v});h.deadline=v;toast(v?"Дедлайн сохранён":"Дедлайн снят");route()}catch(e){toast(errText(e))}};
  const si=d.querySelector("#si");if(si)si.onclick=()=>{d.remove();$("#file").click()};const ot=d.querySelector("#ot");if(ot)ot.onclick=()=>{d.remove();openTg("https://t.me/c/"+S.chat+"/"+h.topic_id)};
  const sa=d.querySelector("#sa2");if(sa)sa.onchange=()=>{S.showAll=sa.checked}}
 async function sendMsg(){if(S.busy)return;const t=$("#tx").value.trim(),f=S.pendingFile;if(!t&&!f)return;
@@ -745,11 +746,18 @@ const openTg=u=>TGW&&TGW.openTelegramLink?TGW.openTelegramLink(u):open(u);
 const openLink=u=>TGW&&TGW.openLink?TGW.openLink(u):open(u,"_blank");
 
 $("#main").onclick=e=>{const t=e.target;
- if(t.dataset&&t.dataset.showall!==undefined){S.showAll=t.checked;return route()}
+ if(t.dataset&&t.dataset.vt){S[t.dataset.vt]=t.checked;try{localStorage.setItem("noem_"+t.dataset.vt,t.checked?"1":"0")}catch(e){}return route()}
+  if(t.dataset&&t.dataset.showall!==undefined){S.showAll=t.checked;return route()}
  const am=t.closest("[data-assign-m]");if(am){const p=mm(+am.dataset.assignM);if(p)scenesAssignSheet(p);return}
- const tl=t.closest("[data-tile]");if(tl){const k=tl.dataset.tile,pj=S.project||{};
+ const tgb=t.closest("[data-tg]");if(tgb){const mn=$("#main"),y0=mn.scrollTop,w0=scrollY;S.open[tgb.dataset.tg]=!S.open[tgb.dataset.tg];route();mn.scrollTop=y0;scrollTo(0,w0);return}
+  const cmb=t.closest("[data-cm]");if(cmb){const c=S.cal,n=c.m+ +cmb.dataset.cm;c.y+=Math.floor(n/12);c.m=(n%12+12)%12;return viewCal()}
+  const cdb=t.closest("[data-cd]");if(cdb)return calDay(cdb.dataset.cd);
+  if(t.closest("[data-cdl]"))return dlAssign("");
+  const ftb=t.closest("[data-ft]");if(ftb){finTab=ftb.dataset.ft;return viewFin()}
+  const fab=t.closest("[data-fa]");if(fab)return finAct(fab.dataset.fa);
+  const tl=t.closest("[data-tile]");if(tl){const k=tl.dataset.tile,pj=S.project||{};
   if(k==="folder"){if(!pj.folder_url)return toast("Пока не доступно");return openLink(pj.folder_url)}
-  if(k==="sound")return go("sound");
+  if(k==="sound")return go("sound");if(k==="cal")return go("cal");if(k==="fin")return go("fin");
   if(!(DOCF[k]&&ghDoc())&&!pj[k+"_file_id"])return toast("Пока не доступно");return go(k==="anim"?"anim":"doc-"+k)}
  const ad=t.closest("[data-add]");if(ad){const k=ad.dataset.add;if(k==="scene")return addScene();if(k==="shot")return addShot(parse()[1]);if(k==="snd")return addSound()}
  const ed=t.closest("[data-ed]");if(ed){const i=ed.dataset.ed.indexOf(":");return editItem(ed.dataset.ed.slice(0,i),ed.dataset.ed.slice(i+1))}
@@ -977,6 +985,65 @@ async function resMember(id){try{const r=await call("restore_member",{id});
   d.querySelector("#cp").onclick=async()=>{try{await navigator.clipboard.writeText(r.link);toast("Скопировано")}catch(e){toast("Выделите ссылку и скопируйте вручную")}};
   d.querySelector("#shr").onclick=()=>{const u="https://t.me/share/url?url="+encodeURIComponent(r.link);TGW&&TGW.openTelegramLink?TGW.openTelegramLink(u):open(u)}}
  else toast("Пользователь возвращён");route()}catch(e){toast(errText(e))}}
+/* ===================== дедлайны, виды, календарь, смета ===================== */
+const MONTHS=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+const ddmm=d=>d.slice(8,10)+"."+d.slice(5,7);
+const dlChip=h=>{if(!h.deadline)return"";const od=h.deadline<new Date().toISOString().slice(0,10)&&!ACCEPTED.includes(h.status);return`<span class="sub" style="${od?"color:#e5484d;font-weight:600":""}">⏰ ${ddmm(h.deadline)}</span>`};
+const shotCard=(h,MG)=>{const c=`<button class="card" data-go="shot-${h.id}"><span class="th" data-th="${h.id}"></span><span class="grow"><div class="row"><span class="num" style="min-width:0">${esc(h.num)}</span>${chipH(h.status)}${dlChip(h)}<span class="pct" style="margin-left:auto">${h.progress||0}%</span></div><div class="sub">${esc(h.action||h.scale||"—")}</div><div class="avas">${(h.assignees||[]).map(a=>`<span class="ava">${esc(ini(a))}</span>`).join("")}</div>${bar(h.progress||0,h.status)}</span></button>`;
+ return MG?`<div class="cw">${c}<button class="ib" data-ed="shot:${esc(h.id)}" title="Изменить" style="color:var(--ink)">✎</button><button class="ib" data-rm="shot:${esc(h.id)}" title="Удалить кадр">✕</button></div>`:c};
+const viewTg=()=>`<label class="note" style="display:block"><input type="checkbox" data-vt="byStatus" ${S.byStatus?"checked":""}> Сортировка по статусам</label><label class="note" style="display:block"><input type="checkbox" data-vt="onePage" ${S.onePage?"checked":""}> Одностраничный вид</label>`;
+function statusList(V){let h="";const scs=S.scenes.filter(s=>s.id!==SND).sort((a,b)=>a.ord-b.ord),key=x=>ST.some(s=>s[0]===x.status)?x.status:ST[0][0];
+ ST.forEach(st=>{const a=V.filter(x=>key(x)===st[0]);if(!a.length)return;
+  h+=`<div class="h2" style="display:flex;align-items:center;gap:8px">${chipH(st[0])}<span>${a.length}</span></div>`;
+  scs.forEach(s=>{const b=a.filter(x=>x.scene===s.id).sort((x,y)=>x.ord-y.ord);if(!b.length)return;
+   h+=`<div class="sub" style="margin:6px 2px 4px">Сц ${esc(s.num||"–")} · ${esc(s.title||"")}</div>`+b.map(x=>shotCard(x,false)).join("")})});
+ return h||`<div class="empty">Кадров нет</div>`}
+const openShots=s=>`<div style="margin:-4px 0 10px 12px">${[...shotsOf(s.id)].sort((a,b)=>a.ord-b.ord).map(h=>shotCard(h,manage())).join("")}</div>`;
+function scenesAfter(V,SC){let ids=[];if(S.byStatus)ids=V.map(h=>h.id);else if(S.onePage)SC.forEach(s=>{if(S.open[s.id])shotsOf(s.id).forEach(h=>ids.push(h.id))});if(ids.length){paintThumbs();ensureThumbs(ids)}}
+/* --- календарь --- */
+function viewCal(){const m=$("#main"),DL=has("deadlines"),now=new Date(),pad=n=>String(n).padStart(2,"0");
+ if(!S.cal)S.cal={y:now.getFullYear(),m:now.getMonth()};const y=S.cal.y,mo=S.cal.m,ym=y+"-"+pad(mo+1),today=now.toISOString().slice(0,10);
+ const by={};vis().forEach(h=>{if(h.deadline)(by[h.deadline]=by[h.deadline]||[]).push(h)});
+ const first=(new Date(y,mo,1).getDay()+6)%7,dim=new Date(y,mo+1,0).getDate();let cells="";for(let i=0;i<first;i++)cells+="<span></span>";
+ for(let d=1;d<=dim;d++){const k=ym+"-"+pad(d),a=by[k]||[],od=a.some(h=>k<today&&!ACCEPTED.includes(h.status));cells+=`<button class="calc${k===today?" today":""}" data-cd="${k}"><b>${d}</b>${a.length?`<i style="background:${od?"#e5484d":"var(--acc)"}">${a.length}</i>`:""}</button>`}
+ const days=Object.keys(by).filter(k=>k.slice(0,7)===ym).sort(),ids=[];
+ m.innerHTML=`<style>.calg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.calc{aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;padding:0}.calc.today{border-color:var(--acc)}.calc i{font-style:normal;font-size:11px;color:#fff;border-radius:8px;padding:0 6px}.calw{text-align:center;font-size:11px;opacity:.6}</style><div class="wrap"><div class="row" style="justify-content:space-between;margin-bottom:8px"><button class="btn ghost sm" data-cm="-1">‹</button><b>${MONTHS[mo]} ${y}</b><button class="btn ghost sm" data-cm="1">›</button></div>${DL?`<button class="btn" data-cdl="" style="margin-bottom:10px">Назначить дедлайны…</button>`:""}<div class="calg">${["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(d=>`<span class="calw">${d}</span>`).join("")}${cells}</div><div class="h2">Календарный план</div>`+
+  (days.length?days.map(k=>{by[k].sort((a,b)=>a.ord-b.ord).forEach(h=>ids.push(h.id));return`<div class="sub" style="margin:8px 2px 4px"><b>${ddmm(k)}</b> · ${by[k].length} кадр.</div>`+by[k].map(h=>shotCard(h,false)).join("")}).join(""):`<div class="empty">В этом месяце дедлайнов нет</div>`)+`</div>`;
+ if(ids.length){paintThumbs();ensureThumbs(ids)}}
+function calDay(k){const a=vis().filter(h=>h.deadline===k).sort((x,y)=>x.ord-y.ord),DL=has("deadlines"),sc=Object.fromEntries(S.scenes.map(s=>[s.id,s]));
+ const d=sheet(`<div class="h2" style="margin-top:0">${k.slice(8)}.${k.slice(5,7)}.${k.slice(0,4)}</div>${a.length?a.map(h=>`<div class="row" style="margin-bottom:6px"><button class="card grow" style="margin:0" data-g="${esc(h.id)}"><span class="grow"><div class="row"><span class="num" style="min-width:0">${esc(h.num)}</span>${chipH(h.status)}</div><div class="sub">Сц ${esc((sc[h.scene]||{}).num||"")} · ${esc(h.action||"—")}</div></span></button>${DL?`<button class="ib" data-x="${esc(h.id)}">✕</button>`:""}</div>`).join(""):`<div class="sub">Кадров нет</div>`}${DL?`<button class="btn" id="da" style="margin-top:8px">＋ Назначить кадры на этот день</button>`:""}`);
+ d.onclick=async e=>{if(e.target===d)return d.remove();const g=e.target.closest("[data-g]");if(g){d.remove();return go("shot-"+g.dataset.g)}
+  const x=e.target.closest("[data-x]");if(x){try{await call("set_deadline",{ids:[x.dataset.x],date:null});const h=S.shots.find(z=>z.id===x.dataset.x);if(h)h.deadline=null;d.remove();route()}catch(er){toast(errText(er))}return}
+  if(e.target.closest("#da")){d.remove();dlAssign(k)}}}
+function dlAssign(date){const d=sheet(`<div class="h2" style="margin-top:0">Дедлайны</div><div class="sub">Дата</div><input type="date" class="inp" id="dd" value="${date}"><div class="sub" style="margin-top:8px">Кадры (галочка у сцены выбирает все её кадры)</div><div style="max-height:46vh;overflow:auto">${S.scenes.filter(s=>s.id!==SND).sort((a,b)=>a.ord-b.ord).map(s=>{const a=S.shots.filter(h=>h.scene===s.id).sort((x,y)=>x.ord-y.ord);return a.length?`<label class="card" style="cursor:pointer"><input type="checkbox" data-sc="${esc(s.id)}"><span class="grow"><b>Сц ${esc(s.num||"–")}</b> · ${esc(s.title||"")}</span></label>`+a.map(h=>`<label class="sub" style="display:block;padding:4px 0 4px 26px"><input type="checkbox" data-sh="${esc(h.id)}" data-of="${esc(s.id)}"> ${esc(h.num)}${h.deadline?" · ⏰ "+ddmm(h.deadline):""}</label>`).join(""):""}).join("")}</div><div class="row" style="margin-top:12px"><button class="btn" id="dok">Назначить</button><button class="btn ghost" id="dcl">Снять дедлайн</button></div>`);
+ d.addEventListener("change",e=>{const t=e.target;if(t.dataset.sc!==undefined)d.querySelectorAll("[data-sh]").forEach(i=>{if(i.dataset.of===t.dataset.sc)i.checked=t.checked})});
+ const run=async set=>{const ids=[...d.querySelectorAll("[data-sh]:checked")].map(i=>i.dataset.sh),v=d.querySelector("#dd").value;if(!ids.length)return toast("Выберите кадры");if(set&&!v)return toast("Укажите дату");
+  try{await call("set_deadline",{ids,date:set?v:null});S.shots.forEach(h=>{if(ids.includes(h.id))h.deadline=set?v:null});d.remove();route();toast(set?"Дедлайн назначен: "+ids.length:"Дедлайн снят")}catch(e){toast(errText(e))}};
+ d.querySelector("#dok").onclick=()=>run(true);d.querySelector("#dcl").onclick=()=>run(false)}
+/* --- смета и договора --- */
+let finTab="smeta",finT=null;
+async function viewFin(){if(!has("finance"))return go("scenes");const m=$("#main");if($("#sm")&&finTab==="smeta")return;
+ m.innerHTML=`<div class="wrap"><div class="row" style="margin-bottom:8px"><button class="btn ${finTab==="smeta"?"":"ghost"}" data-ft="smeta">Смета</button><button class="btn ${finTab==="docs"?"":"ghost"}" data-ft="docs">Договора</button><span class="sub" id="fst" style="margin-left:auto"></span></div><div id="fb"><div class="sub">Загрузка…</div></div></div>`;
+ try{S.fin=await call("fin_get",{})}catch(e){const b=$("#fb");if(b)b.innerHTML=`<div class="empty">${esc(errText(e))}</div>`;return}
+ if(parse()[0]!=="fin")return;finTab==="smeta"?finSmeta():finDocs()}
+function finSmeta(){const b=$("#fb");if(!b)return;b.innerHTML=`<iframe id="sm" src="smeta.html#embed" style="width:100%;height:calc(100dvh - 140px);border:0;border-radius:12px;background:#fff"></iframe>`;
+ const f=$("#sm");f.onload=()=>f.contentWindow.postMessage({noemSmetaLoad:S.fin.smeta||null},location.origin)}
+addEventListener("message",e=>{const f=$("#sm");if(!f||e.source!==f.contentWindow||e.origin!==location.origin||!e.data||!e.data.noemSmeta)return;
+ let o;try{o=JSON.parse(e.data.noemSmeta)}catch(x){return}S.fin.smeta=o;const st=$("#fst");if(st)st.textContent="Сохранение…";clearTimeout(finT);
+ finT=setTimeout(async()=>{try{await call("fin_save_smeta",{data:o});const s2=$("#fst");if(s2)s2.textContent="Сохранено"}catch(x){toast(errText(x))}},1200)});
+function finDocs(){const b=$("#fb"),F=S.fin;if(!b)return;
+ b.innerHTML=`<button class="btn" data-fa="spec" style="margin-bottom:10px">＋ Специалист</button>`+(F.specs.length?F.specs.map(p=>`<div class="card" style="display:block"><div class="row"><span class="t grow">${esc(p.name)}</span><button class="ib" data-fa="ren:${p.id}" style="color:var(--ink)">✎</button><button class="ib" data-fa="dsp:${p.id}">✕</button></div>${F.docs.filter(d=>d.spec_id===p.id).map(d=>`<div class="row" style="margin-top:6px"><button class="chip grow" style="--c:var(--acc);text-align:left" data-fa="get:${d.id}">⇩ ${esc(d.name)}</button><span class="sub">${fmtSize(d.size)}</span><button class="ib" data-fa="dd:${d.id}">✕</button></div>`).join("")}<button class="btn ghost sm" style="margin-top:8px" data-fa="up:${p.id}">＋ Документ</button></div>`).join(""):`<div class="empty">Добавьте специалиста, затем прикрепите его документы</div>`)}
+async function finAct(a){const F=S.fin,i=a.indexOf(":"),k=i<0?a:a.slice(0,i),id=i<0?"":a.slice(i+1);try{
+ if(k==="spec"){const v=await formSheet("Новый специалист",[{k:"name",l:"Имя специалиста",v:""}],"Добавить");if(!v||!v.name)return;F.specs.push((await call("fin_spec_add",{name:v.name})).spec)}
+ else if(k==="ren"){const p=F.specs.find(x=>x.id===id),v=await formSheet("Переименовать",[{k:"name",l:"Имя",v:p.name}],"Сохранить");if(!v||!v.name)return;await call("fin_spec_rename",{id,name:v.name});p.name=v.name}
+ else if(k==="dsp"){if(!await askYes("Удалить специалиста и все его документы?"))return;await call("fin_spec_del",{id});F.specs=F.specs.filter(x=>x.id!==id);F.docs=F.docs.filter(x=>x.spec_id!==id)}
+ else if(k==="dd"){if(!await askYes("Удалить документ?"))return;await call("fin_doc_del",{id});F.docs=F.docs.filter(x=>x.id!==id)}
+ else if(k==="get"){return openLink((await call("fin_doc_url",{id})).url)}
+ else if(k==="up")return finUpload(id);
+ finDocs()}catch(e){toast(errText(e))}}
+function finUpload(spec){const i=document.createElement("input");i.type="file";i.multiple=true;
+ i.onchange=async()=>{for(const f of i.files){try{toast("Загрузка: "+f.name);const fd=new FormData();fd.append("action","fin_doc_up");fd.append("spec_id",spec);fd.append("file",f,f.name);
+   const r=await handle(await fetch(API,{method:"POST",headers:AH(),body:fd}));S.fin.docs.push(r.doc)}catch(e){toast(errText(e))}}finDocs()};i.click()}
 boot();
 </script>
 </body>
