@@ -226,10 +226,24 @@ textarea.inp{resize:vertical}
 .kc{width:100%;border:0;background:transparent;padding:7px 8px;resize:none;display:block;font-size:14px;outline:0}.kc:focus{background:rgba(127,127,127,.1)}
 .kc.kt1{font:700 17px/1.3 inherit;text-align:center;border:0;margin-top:4px}.kc.kt2{text-align:center;color:var(--mute)}
 
+.rx{position:fixed;z-index:35;display:flex;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:4px 6px;box-shadow:0 6px 20px #0004}
+.rx button{font-size:22px;padding:2px 5px;border-radius:50%}
+.rxs{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;white-space:normal}
+.rxc{border:1px solid var(--line);border-radius:12px;padding:0 7px;font-size:13px;background:var(--bg)}
+.rxc.me{border-color:var(--acc);color:var(--acc)}
+.rq{border-left:3px solid var(--acc);padding:2px 8px;margin:0 0 4px;font-size:13px;color:var(--mute);background:var(--bg);border-radius:6px;white-space:normal;cursor:pointer;overflow-wrap:anywhere}
+.fwd{font-size:12px;color:var(--mute);margin-bottom:2px;white-space:normal}
+.mn{color:var(--acc);font-weight:600}
+.mp{padding:6px 12px;border-top:1px solid var(--line);background:var(--panel);max-height:35vh;overflow:auto}
+.mp button{display:block;width:100%;text-align:left;padding:8px 6px;border-radius:8px}
+.mp button:hover{background:var(--bubble)}
+.msg{position:relative}
+.rpl{display:none;position:absolute;top:2px;right:4px;font-size:15px;color:var(--mute);padding:0 4px}
+@media (hover:hover) and (pointer:fine){.msg:hover .rpl{display:block}}
 </style>
 </head>
 <body>
-<header><button class="ib" id="back" hidden>‹</button><h1 id="ttl">Noem.line</h1><button class="ib" id="hx" hidden title="Снять выбор"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button><button class="ib" id="hpin" hidden title="Закрепить / открепить"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5M9 3h6l-1 6 3 3v2H7v-2l3-3z"/></svg></button><button class="ib" id="hdel" hidden title="Удалить"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button><button class="ib" id="bell" hidden title="Уведомления"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="bdg" id="bdg" hidden></span></button><button class="ib" id="cfg" hidden title="Настройки"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></header>
+<header><button class="ib" id="back" hidden>‹</button><h1 id="ttl">Noem.line</h1><button class="ib" id="hx" hidden title="Снять выбор"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button><button class="ib" id="hpin" hidden title="Закрепить / открепить"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5M9 3h6l-1 6 3 3v2H7v-2l3-3z"/></svg></button><button class="ib" id="hfw" hidden title="Переслать"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5M20 9H9a5 5 0 0 0-5 5v5"/></svg></button><button class="ib" id="hdel" hidden title="Удалить"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button><button class="ib" id="bell" hidden title="Уведомления"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="bdg" id="bdg" hidden></span></button><button class="ib" id="cfg" hidden title="Настройки"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></header>
 <main id="main"></main>
 <div id="foot"></div>
 <nav id="nav"><button data-r="scenes">Сцены</button><button data-r="team">Команда</button></nav>
@@ -261,7 +275,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const S = { stages:[], ss:{}, stage:null, roles:[], showAll:false, me:null, scenes:[], shots:[], members:[], project:null, chat:null, bound:false, thumbs:{}, msgs:[],
   unread:0, sinceShots:0, sinceMsgs:0, curShot:null, pendingFile:null, asFile:false, fixMode:false, busy:false };
-S.open={};try{S.byStatus=localStorage.getItem("noem_byStatus")==="1";S.onePage=localStorage.getItem("noem_onePage")==="1"}catch(e){}
+S.open={};S.onePage=true;try{S.byStatus=localStorage.getItem("noem_byStatus")==="1";const op=localStorage.getItem("noem_onePage2");if(op!==null)S.onePage=op==="1"}catch(e){}
 S.manage=false;try{S.manage=localStorage.getItem("noem_manage")==="1"}catch(e){}
 const stOf = k => ST.find(s => s[0] === k) || ST[0];
 const fmtSize = n => !n ? "" : n < 1048576 ? Math.round(n/1024) + " КБ" : (n/1048576).toFixed(n < 10485760 ? 1 : 0) + " МБ";
@@ -279,6 +293,7 @@ async function handle(r){
 }
 const ERR = {pdf_big:"PDF больше 20 МБ: Telegram не даёт приложению скачивать такие файлы", not_pdf:"Нужен файл в формате PDF", bad_url:"Ссылка должна начинаться с http:// или https://", too_big:"Файл больше 50 МБ. Отправьте его прямо в топик в Telegram.", forbidden:"Нет прав на это действие", start_bot:"Сначала нажмите Start в чате с ботом", empty:"Пустое сообщение", anim_big:"Видео больше 50 МБ: отправьте его в общий чат группы с подписью #аниматик", not_video:"Нужен видеофайл (.mp4)"};
 const errText = e => ERR[e.code] || e.message || "Ошибка";
+ERR.no_mentions="Громкое сообщение: напишите @ и выберите, кому оно адресовано";
 Object.assign(ERR,{bad_invite:"Ссылка недействительна или уже использована",login_taken:"Такой логин уже занят",bad_login:"Логин: 3–32 символа, латиница, цифры, _ . -",bad_password:"Пароль должен быть от 6 символов",bad_creds:"Неверный логин или пароль",locked:"Слишком много попыток. Подождите 10 минут",no_assignees:"Сначала назначьте исполнителя на кадр",already_linked:"Этот аккаунт уже привязан",bad_cover:"Не удалось сохранить обложку"});
 const blobCache = new Map();
 function fileBlob(id){
@@ -299,7 +314,7 @@ const ini = id => (nm(id)[0] || "?").toUpperCase();
 const has=p=>S.me.owner||(S.me.perms||[]).includes(p);
 const SND="snd",isSnd=h=>!!h&&h.scene===SND,realScenes=()=>S.scenes.filter(s=>s.id!==SND);
 const manage=()=>!!S.manage&&!!S.me&&!!(S.me.owner||(S.me.perms||[]).includes("tasks"));
-const cfgOn=v=>v==="shot"||!!S.me.owner||has("tasks");
+const cfgOn=v=>true;
 const isSub=v=>["scene","shot","doc","anim","sound","cal","fin","kpp"].includes(v);
 const shotTitle=h=>(isSnd(h)?"Задача ":"Кадр ")+h.num;
 const noUn=()=>!S.me.owner&&(S.me.perms||[]).includes("hide_unassigned");
@@ -555,13 +570,13 @@ function memberSheet(p){const d=sheet(`<div class="h2" style="margin-top:0">${es
  let role=p.role||null;
  d.querySelector("#rl").onclick=e=>{const r=e.target.dataset&&e.target.dataset.r;if(!r)return;role=r;d.querySelectorAll("#rl button").forEach(b=>b.classList.toggle("on",b.dataset.r===r))};
  d.querySelector("#ok").onclick=async()=>{const perms=[...d.querySelectorAll("input:checked")].map(i=>i.value).filter(v=>v!=="see_un");if(!d.querySelector("[value=see_un]").checked)perms.push("hide_unassigned");d.remove();try{await call("set_member",{id:p.tg_id,role,perms});p.role=role;p.perms=perms;route()}catch(e){toast(errText(e))}}}
-S.sel=new Set();let selOn=false,lpT=null,lpAt=0;
+S.sel=new Set();let selOn=false,lpT=null,lpAt=0,swAt=0;
 const msgOf=id=>S.msgs.find(m=>m.id===id);
 const canPinMsg=()=>{const h=S.shots.find(x=>x.id===S.curShot);return !!h&&(canEdit(h)||has("pin_any"))};
 const canDelMsg=x=>S.me.owner||has("del_any")||x.by_id===S.me.id;
 function updSel(){const n=S.sel.size,v=parse()[0],hx=$("#hx"),hp=$("#hpin"),hd=$("#hdel");if(!hx)return;
  const ms=[...S.sel].map(msgOf).filter(Boolean),pin=n&&canPinMsg(),del=n&&ms.some(canDelMsg);
- hx.hidden=!n;hp.hidden=!pin;hd.hidden=!del;
+ hx.hidden=!n;hp.hidden=!pin;hd.hidden=!del;$("#hfw").hidden=!n;
  if(n){selOn=true;$("#back").hidden=true;$("#cfg").hidden=true;$("#bell").hidden=true;$("#ttl").textContent="Выбрано: "+n;hp.title=ms.every(x=>x.pinned)?"Открепить":"Закрепить"}
  else if(selOn){selOn=false;$("#back").hidden=NATIVE_BACK||!isSub(v);$("#cfg").hidden=!cfgOn(v);$("#bell").hidden=false;const h=S.shots.find(x=>x.id===S.curShot);if(v==="shot"&&h)$("#ttl").textContent=shotTitle(h)}
  document.querySelectorAll("[data-mid]").forEach(e=>e.classList.toggle("sel",S.sel.has(+e.dataset.mid)))}
@@ -572,13 +587,16 @@ async function bulkOp(kind){const ms=[...S.sel].map(msgOf).filter(Boolean);if(!m
    for(const x of a){await call("del_msg",{id:x.id});x.deleted=true;x.pinned=false}}
  }catch(e){toast(errText(e))}
  S.sel=new Set();updSel();renderChat();pollOnce(true)}
-$("#hx").onclick=()=>{S.sel=new Set();updSel()};$("#hpin").onclick=()=>bulkOp("pin");$("#hdel").onclick=()=>bulkOp("del");
+$("#hx").onclick=()=>{S.sel=new Set();updSel()};$("#hpin").onclick=()=>bulkOp("pin");$("#hfw").onclick=fwdSheet;$("#hdel").onclick=()=>bulkOp("del");
 (()=>{const ch=$("#main");
  ch.addEventListener("contextmenu",e=>{const m=e.target.closest("[data-mid]");if(!m)return;e.preventDefault();if(Date.now()-lpAt<900)return;selToggle(+m.dataset.mid)});
  ch.addEventListener("touchstart",e=>{const m=e.target.closest("[data-mid]");if(!m||e.touches.length>1)return;const id=+m.dataset.mid;clearTimeout(lpT);lpT=setTimeout(()=>{lpAt=Date.now();selToggle(id,"add");navigator.vibrate&&navigator.vibrate(15)},450)},{passive:true});
  ["touchmove","touchend","touchcancel"].forEach(ev=>ch.addEventListener(ev,()=>clearTimeout(lpT),{passive:true}));
+ let sw=null;
+ ch.addEventListener("touchstart",e=>{const m=e.target.closest("[data-mid]");sw=m&&e.touches.length===1?{id:+m.dataset.mid,x:e.touches[0].clientX,y:e.touches[0].clientY}:null},{passive:true});
+ ch.addEventListener("touchend",e=>{if(!sw)return;const t=e.changedTouches[0],dx=t.clientX-sw.x,dy=t.clientY-sw.y,id=sw.id;sw=null;if(dx<-60&&Math.abs(dx)>Math.abs(dy)*2&&!S.sel.size){swAt=Date.now();setReply(id)}},{passive:true});
  ch.addEventListener("click",e=>{const m=e.target.closest("[data-mid]");if(!m)return;if(Date.now()-lpAt<900){e.stopPropagation();e.preventDefault();return}
-  if(S.sel.size){e.stopPropagation();e.preventDefault();selToggle(+m.dataset.mid)}},true)})();
+  if(S.sel.size){e.stopPropagation();e.preventDefault();selToggle(+m.dataset.mid)}else if(Date.now()-swAt>400&&!e.target.closest("button,img,a,.file,.rq"))openReact(+m.dataset.mid,m)},true)})();
 function scenesAssignSheet(p){const sc=[...S.scenes].sort((a,b)=>(a.ord||0)-(b.ord||0)),sel=new Set(),open=new Set();
  const by=id=>S.shots.filter(h=>h.scene===id).sort((a,b)=>a.ord-b.ord),isA=h=>(h.assignees||[]).map(Number).includes(p.tg_id);
  const d=sheet(`<div class="h2" style="margin-top:0">${esc(p.name)}: назначение</div><div class="sub" style="display:block">Отметьте сцены целиком или раскройте сцену и выберите отдельные кадры. «Назначить» и «Снять» применятся ко всем отмеченным кадрам.</div><label class="card" style="cursor:pointer"><input type="checkbox" id="all"><span class="grow t">Выбрать все</span></label><div id="lst" style="max-height:45vh;overflow:auto"></div><div class="row" style="margin-top:12px"><button class="btn" id="ad">Назначить</button><button class="btn ghost" id="rm">Снять</button><span class="sub" id="cn"></span></div>`);
@@ -611,14 +629,14 @@ function viewShot(id){const h=S.shots.find(x=>x.id===id),m=$("#main");if(!h){m.i
  $("#ttl").textContent=shotTitle(h);
  m.innerHTML=`<div class="wrap"><div id="hd"></div><div id="lv"></div><div id="pn"></div><div class="h2">Чат кадра</div><div id="chat"></div></div>`;
  S.loud=false;S.ss={};{const cs=isSnd(h)?null:(S.stages.find(s=>s.id===h.cur_stage)||S.stages[0]);S.stage=cs?cs.id:null}headSig="";paintHead(true);
- $("#foot").innerHTML=`<div class="mode" id="md"></div><div class="comp"><button class="ib" id="at" title="Файл или версия">${INIT?"📎":`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`}</button>${has("fix")?`<button class="ib" id="fx" title="Правка">✎</button>`:""}${has("loud")?`<button class="ib" id="ld" title="Громко: бот перешлёт исполнителям в личку">🔔</button>`:""}<textarea id="tx" rows="1" placeholder="${INIT?"Сообщение…":"Сообщение… (Ctrl+Enter — отправить)"}"></textarea><button class="btn" id="sn">➤</button></div>`;
+ $("#foot").innerHTML=`<div class="mp" id="mp" hidden></div><div class="mode" id="md"></div><div class="comp"><button class="ib" id="at" title="Файл или версия">${INIT?"📎":`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`}</button>${has("fix")?`<button class="ib" id="fx" title="Правка">✎</button>`:""}${has("loud")?`<button class="ib" id="ld" title="Громко: бот перешлёт исполнителям в личку">🔔</button>`:""}<textarea id="tx" rows="1" placeholder="${INIT?"Сообщение…":"Сообщение… (Ctrl+Enter — отправить)"}"></textarea><button class="btn" id="sn">➤</button></div>`;
  if(!canEdit(h))$("#foot").innerHTML=`<div class="mode" style="padding-bottom:10px">Вы не назначены на этот кадр: чат можно читать, но писать в него и менять статус могут только исполнители, режиссёр и те, у кого есть права.</div>`;
- S.pendingFile=null;S.asFile=false;S.fixMode=false;S.msgs=[];S.sinceMsgs=0;modeLine();renderChat();
+ S.replyTo=null;S.pendingFile=null;S.asFile=false;S.fixMode=false;S.msgs=[];S.sinceMsgs=0;modeLine();renderChat();
  if($("#at"))$("#at").onclick=()=>$("#pic").click();
  if($("#fx"))$("#fx").onclick=()=>{S.fixMode=!S.fixMode;$("#fx").style.borderColor=S.fixMode?"var(--s3)":"";modeLine()};
-  if($("#ld"))$("#ld").onclick=()=>{S.loud=!S.loud;$("#ld").style.borderColor=S.loud?"var(--acc)":"";modeLine()};
+  if($("#ld"))$("#ld").onclick=()=>{S.loud=!S.loud;$("#ld").style.borderColor=S.loud?"var(--acc)":"";modeLine();if(S.loud)loudMention()};
  if($("#sn"))$("#sn").onclick=sendMsg;
- if($("#tx")){const tx=$("#tx");tx.oninput=growTx;tx.onkeydown=e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();sendMsg()}};tx.onpaste=e=>{const f=[...(e.clipboardData&&e.clipboardData.files||[])][0];if(f){e.preventDefault();setPicked(f)}}}
+ if($("#tx")){const tx=$("#tx");tx.oninput=()=>{growTx();mentionCheck()};tx.onkeydown=e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();sendMsg()}};tx.onpaste=e=>{const f=[...(e.clipboardData&&e.clipboardData.files||[])][0];if(f){e.preventDefault();setPicked(f)}}}
  pollOnce(true)}
 let headSig="";
 function paintHead(force){const h=S.shots.find(x=>x.id===S.curShot),hd=$("#hd");if(!h||!hd)return;
@@ -636,8 +654,38 @@ function paintHead(force){const h=S.shots.find(x=>x.id===S.curShot),hd=$("#hd");
  const dx=$("#dlx");if(dx)dx.onchange=()=>setDl(h,dx.value||null);const dc=$("#dlc");if(dc)dc.onclick=()=>setDl(h,null);
  paintThumbs();ensureThumbs([h.id]);hd.querySelectorAll("[data-xm]").forEach(e=>setBg(e,[mediaUrl(e.dataset.xm,true),mediaUrl(e.dataset.xm)]));hd.querySelectorAll("[data-xf]").forEach(e=>fileBlob(e.dataset.xf).then(u=>{e.style.backgroundImage="url("+u+")"}).catch(()=>{}))}
 function modeLine(){const e=$("#md");if(!e)return;const f=S.pendingFile;
- e.innerHTML=(S.fixMode?"Режим: правка":"")+(S.loud?" 🔔 Бот перешлёт исполнителям в личку.":"")+(f?` <span>Файл: ${esc(f.name)} (${fmtSize(f.size)})</span>${/^image\//.test(f.type)?`<button data-act="asfile">${S.asFile?"✓ без сжатия":"без сжатия"}</button>`:""}<button data-act="dropfile">убрать</button>`:"")}
+ e.innerHTML=(S.replyTo?replyLine():"")+(S.fixMode?"Режим: правка":"")+(S.loud?" 🔔 Громко: уведомление и личка только отмеченным через @.":"")+(f?` <span>Файл: ${esc(f.name)} (${fmtSize(f.size)})</span>${/^image\//.test(f.type)?`<button data-act="asfile">${S.asFile?"✓ без сжатия":"без сжатия"}</button>`:""}<button data-act="dropfile">убрать</button>`:"")}
 function setPicked(f){if(!f)return;if(f.size>50*1024*1024){toast(ERR.too_big);return}S.pendingFile=f;S.asFile=false;modeLine()}
+const RX=["👍","👌","❤️","🔥","👎","🐢","🌻"];
+const snip2=x=>{const t=(x.text||(x.file_name?"📎 "+x.file_name:"")).replace(/\s+/g," ").trim();return t.length>50?t.slice(0,50)+"…":t};
+function closeRx(){document.querySelectorAll(".rx").forEach(e=>e.remove())}
+function openReact(id,el){closeRx();const r=el.getBoundingClientRect(),d=document.createElement("div");d.className="rx";d.innerHTML=RX.map(e=>`<button data-e="${e}">${e}</button>`).join("");
+ d.style.top=Math.max(60,r.top-48)+"px";d.style.left=Math.max(8,Math.min(r.left,innerWidth-290))+"px";document.body.append(d);
+ d.onclick=ev=>{const b=ev.target.closest("[data-e]");if(!b)return;closeRx();react(id,b.dataset.e)};
+ setTimeout(()=>document.addEventListener("click",closeRx,{once:true}),0)}
+async function react(id,e){try{const r=await call("react",{id,emoji:e}),x=msgOf(id);if(x)x.reactions=r.reactions;renderChat();pollOnce(true)}catch(er){toast(errText(er))}}
+function setReply(id){if(!$("#tx")||S.sel.size)return;S.replyTo=id;modeLine();$("#tx").focus()}
+function replyLine(){const x=msgOf(S.replyTo);return `<span>↩ ${esc(x?(x.by_name||"Участник")+": "+snip2(x):"Ответ")}</span><button data-act="norply">✕</button> `}
+function quoteHtml(x){if(!x.reply_to)return"";const q=msgOf(x.reply_to);return `<div class="rq" data-goto="${x.reply_to}">${q&&!q.deleted?esc((q.by_name||"Участник")+": "+snip2(q)):"Сообщение недоступно"}</div>`}
+function txtHtml(x){let s=esc(x.text);(x.mentions||[]).forEach(i=>{const n=esc("@"+nm(Number(i)));s=s.split(n).join(`<b class="mn">${n}</b>`)});return s}
+function rxHtml(x){const e=Object.entries(x.reactions||{}).filter(([k,u])=>u&&u.length);return e.length?`<div class="rxs">${e.map(([k,u])=>`<button class="rxc${u.map(Number).includes(S.me.id)?" me":""}" data-rx="${x.id}|${k}">${k} ${u.length}</button>`).join("")}</div>`:""}
+const shotPeople=()=>{const h=S.shots.find(x=>x.id===S.curShot);return h?(h.assignees||[]).map(Number).filter(i=>i!==S.me.id).map(i=>mm(i)).filter(Boolean):[]};
+const curMentions=t=>shotPeople().filter(p=>t.includes("@"+p.name)).map(p=>p.tg_id);
+function mentionCheck(){const tx=$("#tx"),mp=$("#mp");if(!tx||!mp)return;const m=/(^|\s)@([^\s@]*)$/.exec(tx.value.slice(0,tx.selectionStart));
+ if(!m){mp.hidden=true;return}
+ const q=m[2].toLowerCase(),all=shotPeople(),L=all.filter(p=>p.name.toLowerCase().includes(q));
+ mp.innerHTML=L.length?L.map(p=>`<button data-mt="${p.tg_id}"><b>${esc(p.name)}</b> <span class="sub">${esc(p.role||"")}</span></button>`).join(""):`<div class="sub">${all.length?"Никого не найдено":"На задачу никто не назначен"}</div>`;
+ mp.hidden=false;mp.onmousedown=e=>e.preventDefault();
+ mp.onclick=e=>{const b=e.target.closest("[data-mt]");if(!b)return;const p=mm(+b.dataset.mt),v=tx.value,pos=tx.selectionStart,head=v.slice(0,pos).replace(/@[^\s@]*$/,"@"+p.name+" ");tx.value=head+v.slice(pos);tx.focus();tx.setSelectionRange(head.length,head.length);mp.hidden=true;growTx()}}
+function loudMention(){const tx=$("#tx");if(!tx)return;const v=tx.value,p=tx.selectionStart;if(!/(^|\s)@[^\s@]*$/.test(v.slice(0,p))){const pre=v.slice(0,p),sp=pre&&!/\s$/.test(pre)?" ":"",c=pre.length+sp.length+1;tx.value=pre+sp+"@"+v.slice(p);tx.setSelectionRange(c,c)}tx.focus();mentionCheck()}
+function fwdSheet(){const ids=[...S.sel].sort((a,b)=>a-b);if(!ids.length)return;
+ const sc=Object.fromEntries(S.scenes.map(s=>[s.id,s])),all=S.shots.filter(canEdit).sort((a,b)=>a.ord-b.ord);
+ const d=sheet(`<div class="h2" style="margin-top:0">Переслать (${ids.length}) в…</div><input class="inp" id="fq" placeholder="Поиск: номер или текст кадра"><div id="fl" style="max-height:50vh;overflow:auto;margin-top:8px"></div>`);
+ const draw=()=>{const q=d.querySelector("#fq").value.trim().toLowerCase(),L=all.filter(h=>!q||(h.num+" "+(h.action||"")+" "+((sc[h.scene]||{}).title||"")).toLowerCase().includes(q)).slice(0,60);
+  d.querySelector("#fl").innerHTML=L.map(h=>`<button class="card" data-to="${esc(h.id)}"><span class="grow"><div class="t">${esc(isSnd(h)?"Звук "+h.num:"Сц "+((sc[h.scene]||{}).num||"–")+" · кадр "+h.num)}</div><div class="sub">${esc(h.action||"—")}</div></span></button>`).join("")||`<div class="sub">Ничего не найдено</div>`};
+ d.querySelector("#fq").oninput=draw;draw();
+ d.querySelector("#fl").onclick=async e=>{const b=e.target.closest("[data-to]");if(!b)return;d.remove();
+  try{const r=await call("forward",{ids,to:b.dataset.to});S.sel=new Set();updSel();toast("Переслано: "+r.count);pollOnce(true)}catch(er){toast(errText(er))}}}
 function growTx(){const t=$("#tx");if(!t)return;t.style.height="auto";t.style.height=Math.min(t.scrollHeight+2,Math.round(innerHeight*0.4))+"px"}
 $("#pic").onchange=e=>{const f=e.target.files[0];e.target.value="";setPicked(f)};
 {let dc=0;const hasF=e=>e.dataTransfer&&[...(e.dataTransfer.types||[])].includes("Files");
@@ -658,7 +706,7 @@ function appSheet(){if(S.off){const d=sheet(`<div class="h2" style="margin-top:0
  if(g("#sc"))g("#sc").onclick=()=>{d.remove();S.docKind="chars";$("#pdf").click()};
  if(g("#sa"))g("#sa").onclick=()=>{d.remove();$("#vid").click()};
  if(g("#mg"))g("#mg").onchange=e=>{S.manage=e.target.checked;try{localStorage.setItem("noem_manage",S.manage?"1":"0")}catch(x){}route();toast(S.manage?"Режим управления задачами включён":"Режим выключен")};
- if(g("#op"))g("#op").onchange=e=>{S.onePage=e.target.checked;try{localStorage.setItem("noem_onePage",S.onePage?"1":"0")}catch(x){}if(parse()[0]==="scenes")route()};
+ if(g("#op"))g("#op").onchange=e=>{S.onePage=e.target.checked;try{localStorage.setItem("noem_onePage2",S.onePage?"1":"0")}catch(x){}if(parse()[0]==="scenes")route()};
  accHandlers(d,g);docHandlers(d,g);
 if(g("#sf"))g("#sf").onclick=async()=>{d.remove();const u=await askText("Ссылка на рабочую папку (пусто — убрать)",false,pj.folder_url||"");if(u===null)return;
   try{const r=await call("set_folder",{url:u});S.project=r.project;toast(r.project.folder_url?"Ссылка сохранена":"Ссылка убрана");if(parse()[0]==="scenes")route()}catch(e){toast(errText(e))}}}
@@ -805,15 +853,15 @@ function notifSheet(){const d=sheet(`<div class="row" style="justify-content:spa
   if(n.shot_id){d.remove();if(S.shots.some(h=>h.id===n.shot_id))go("shot-"+n.shot_id);else toast("Кадр больше не найден")}else paint()})}
 function shotSheet(){const h=S.shots.find(x=>x.id===S.curShot);if(!h)return;
  const own=S.me.owner||S.me.role==="Продюсер";
- const d=sheet(`<div class="h2" style="margin-top:0">Настройки кадра ${esc(h.num)}</div>${h.topic_id&&S.chat?`<button class="card" id="ot" style="width:100%;text-align:left">↗ Открыть топик в Telegram</button>`:`<div class="sub">Топик создастся при первом сообщении</div>`}${S.me.owner?`<button class="card" id="si" style="width:100%;text-align:left;margin-top:10px">⇪ Загрузить .noemtoline / .noemocean</button>`:""}${has("deadlines")?`<div class="sub" style="margin-top:12px">Дедлайн</div><div class="row"><input type="date" class="inp" id="dlv" value="${h.deadline||""}"><button class="btn sm" id="dls">Сохранить</button></div>`:""}${own?"":`<label class="note" style="display:block;margin-top:12px"><input type="checkbox" id="sa2" ${S.showAll?"checked":""}> Показать задачи, на которые вы не назначены</label><div class="sub" style="-webkit-line-clamp:unset">Чат таких кадров можно читать, но писать в него и менять статус нельзя.</div>`}`);
+ const d=sheet(`<div class="h2" style="margin-top:0">Настройки кадра ${esc(h.num)}</div><button class="card" id="ap" style="width:100%;text-align:left;margin-bottom:10px">⚙ Настройки приложения (имя и др.)</button>${h.topic_id&&S.chat?`<button class="card" id="ot" style="width:100%;text-align:left">↗ Открыть топик в Telegram</button>`:`<div class="sub">Топик создастся при первом сообщении</div>`}${S.me.owner?`<button class="card" id="si" style="width:100%;text-align:left;margin-top:10px">⇪ Загрузить .noemtoline / .noemocean</button>`:""}${has("deadlines")?`<div class="sub" style="margin-top:12px">Дедлайн</div><div class="row"><input type="date" class="inp" id="dlv" value="${h.deadline||""}"><button class="btn sm" id="dls">Сохранить</button></div>`:""}${own?"":`<label class="note" style="display:block;margin-top:12px"><input type="checkbox" id="sa2" ${S.showAll?"checked":""}> Показать задачи, на которые вы не назначены</label><div class="sub" style="-webkit-line-clamp:unset">Чат таких кадров можно читать, но писать в него и менять статус нельзя.</div>`}`);
  const dls=d.querySelector("#dls");if(dls)dls.onclick=async()=>{const v=d.querySelector("#dlv").value||null;try{await call("set_deadline",{ids:[h.id],date:v});h.deadline=v;toast(v?"Дедлайн сохранён":"Дедлайн снят");route()}catch(e){toast(errText(e))}};
- const si=d.querySelector("#si");if(si)si.onclick=()=>{d.remove();$("#file").click()};const ot=d.querySelector("#ot");if(ot)ot.onclick=()=>{d.remove();openTg("https://t.me/c/"+S.chat+"/"+h.topic_id)};
+ d.querySelector("#ap").onclick=()=>{d.remove();appSheet()};const si=d.querySelector("#si");if(si)si.onclick=()=>{d.remove();$("#file").click()};const ot=d.querySelector("#ot");if(ot)ot.onclick=()=>{d.remove();openTg("https://t.me/c/"+S.chat+"/"+h.topic_id)};
  const sa=d.querySelector("#sa2");if(sa)sa.onchange=()=>{S.showAll=sa.checked}}
-async function sendMsg(){if(S.busy)return;const t=$("#tx").value.trim(),f=S.pendingFile;if(!t&&!f)return;
+async function sendMsg(){if(S.busy)return;const t=$("#tx").value.trim(),f=S.pendingFile;if(!t&&!f)return;if(S.loud&&!curMentions(t).length)return toast(ERR.no_mentions);
  const kind=f?(S.fixMode?"fix":"version"):S.fixMode?"fix":"text";S.busy=true;$("#sn").disabled=true;if(f)toast("Отправка файла…");
- try{const fd=new FormData();fd.append("action","post");fd.append("shot_id",S.curShot);fd.append("text",t);fd.append("kind",kind);if(S.stage)fd.append("stage_id",S.stage);if(S.asFile)fd.append("asfile","1");if(S.loud)fd.append("loud","1");if(f)fd.append("file",f,f.name);
+ try{const fd=new FormData();fd.append("action","post");fd.append("shot_id",S.curShot);fd.append("text",t);fd.append("kind",kind);if(S.stage)fd.append("stage_id",S.stage);if(S.asFile)fd.append("asfile","1");if(S.loud)fd.append("loud","1");fd.append("mentions",JSON.stringify(curMentions(t)));if(S.replyTo)fd.append("reply_to",S.replyTo);if(f)fd.append("file",f,f.name);
   const r=await handle(await fetch(API,{method:"POST",headers:AH(),body:fd}));
-  mergeMsgs([r.msg]);$("#tx").value="";growTx();S.pendingFile=null;S.asFile=false;S.fixMode=false;if($("#fx"))$("#fx").style.borderColor="";if(S.loud){S.loud=false;if($("#ld"))$("#ld").style.borderColor="";if(r.dm)toast(r.dm.sent?"В личку отправлено: "+r.dm.sent+(r.dm.failed.length?". Не получили (нужно нажать Start у бота): "+r.dm.failed.join(", "):""):(r.dm.failed.length?"Не получили (нужно нажать Start у бота): "+r.dm.failed.join(", "):"Сообщение видно исполнителям в приложении"))}modeLine();renderChat(true);pollOnce(true)
+  mergeMsgs([r.msg]);$("#tx").value="";growTx();S.replyTo=null;S.pendingFile=null;S.asFile=false;S.fixMode=false;if($("#fx"))$("#fx").style.borderColor="";if(S.loud){S.loud=false;if($("#ld"))$("#ld").style.borderColor="";if(r.dm)toast(r.dm.sent?"В личку отправлено: "+r.dm.sent+(r.dm.failed.length?". Не получили (нужно нажать Start у бота): "+r.dm.failed.join(", "):""):(r.dm.failed.length?"Не получили (нужно нажать Start у бота): "+r.dm.failed.join(", "):"Сообщение видно исполнителям в приложении"))}modeLine();renderChat(true);pollOnce(true)
  }catch(e){toast("Не отправлено: "+errText(e))}
  S.busy=false;const b=$("#sn");if(b)b.disabled=false}
 function renderChat(forceStick){const c=$("#chat");if(!c)return;const main=$("#main"),stick=forceStick||(main.scrollTop>0&&main.scrollHeight-main.scrollTop-main.clientHeight<200);
@@ -823,7 +871,7 @@ function renderChat(forceStick){const c=$("#chat");if(!c)return;const main=$("#m
  c.innerHTML=list.length?list.map(x=>{const mine=x.by_id===S.me.id;
   const tg=x.kind==="version"?`<span class="tag">v${vn[x.id]}</span>`:x.kind==="fix"?`<span class="tag ${x.done?"done":"fix"}" data-fx="${x.id}">${x.done?"исправлено":"правка"}</span>`:"";
   const ac="";
-  return`<div class="msg${mine?" me":""}${S.sel.has(x.id)?" sel":""}" data-mid="${x.id}"><div class="who">${esc(x.by_name||"Участник")} · ${new Date(x.ts).toLocaleString("ru",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>${tg}${mediaHtml(x,sh)}${esc(x.text)}${ac}</div>`}).join(""):`<div class="sub">Сообщений пока нет. Пишите здесь или прямо в топике в Telegram: всё попадёт сюда.</div>`;
+  return`<div class="msg${mine?" me":""}${S.sel.has(x.id)?" sel":""}" data-mid="${x.id}"><div class="who">${esc(x.by_name||"Участник")} · ${new Date(x.ts).toLocaleString("ru",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>${$("#tx")?`<button class="rpl" data-reply="${x.id}" title="Ответить">↩</button>`:""}${x.fwd_from?`<div class="fwd">↪ ${esc(x.fwd_from)}</div>`:""}${quoteHtml(x)}${tg}${mediaHtml(x,sh)}${txtHtml(x)}${ac}${rxHtml(x)}</div>`}).join(""):`<div class="sub">Сообщений пока нет. Пишите здесь или прямо в топике в Telegram: всё попадёт сюда.</div>`;
  const pn=$("#pn");if(pn){const ps=list.filter(x=>x.pinned);pn.innerHTML=ps.length?`<div class="h2">📌 Закреплено</div>`+ps.map(x=>`<div class="msg${S.sel.has(x.id)?" sel":""}" data-mid="${x.id}" style="max-width:100%;border-left:3px solid var(--acc)"><div class="who">${esc(x.by_name||"Участник")}</div>${x.file_id?`<div class="sub">📎 ${esc(x.file_name||"файл")}</div>`:""}${x.text?`<div class="sub" style="-webkit-line-clamp:4;color:var(--ink)">${esc(x.text)}</div>`:""}</div>`).join(""):""}
  const lv=$("#lv");if(lv){const vs=list.filter(x=>x.kind==="version"&&x.file_id),last=vs[vs.length-1];lv.innerHTML=last?`<div class="h2">Последний вариант · v${vn[last.id]}</div><div class="msg" style="max-width:100%">${mediaHtml(last,sh)}</div>`:""}
  document.querySelectorAll("#lv img[data-fid], #chat img[data-fid]").forEach(im=>fileBlob(im.dataset.fid).then(u=>{im.src=u}).catch(()=>{im.replaceWith(Object.assign(document.createElement("div"),{className:"sub",textContent:"Превью недоступно"}))}));
@@ -855,7 +903,8 @@ async function inviteWebFlow(){const label=await askText("Для кого ссы
   const d=sheet(`<div class="h2" style="margin-top:0">Регистрация без Telegram</div><p class="sub" style="-webkit-line-clamp:unset">Одноразовая ссылка: зарегистрироваться по ней сможет один человек, второй уже не сможет.</p><div class="link">${esc(link)}</div><div class="row"><button class="btn" id="cp">Скопировать</button></div>`);
   d.querySelector("#cp").onclick=async()=>{try{await navigator.clipboard.writeText(link);toast("Скопировано")}catch(e){toast("Выделите ссылку и скопируйте вручную")}}}catch(e){toast(errText(e))}}
 function accHtml(row){const M=S.me;let h="";
- if(M.web_only)h+=row("sn","✎ Имя в программе: "+esc(M.name),"логин: "+esc(M.login||""))+row("sk","🔗 Привязать аккаунт Telegram","объединит задачи и сообщения");
+ h+=row("sn","✎ Имя в программе: "+esc(M.name),M.login?"логин: "+esc(M.login):"видно всем участникам проекта");
+ if(M.web_only)h+=row("sk","🔗 Привязать аккаунт Telegram","объединит задачи и сообщения");
  else if(!M.login)h+=row("sw","🔗 Привязать аккаунт noem.line","логин и пароль аккаунта с сайта");
  if(!INIT)h+=row("so","↩ Выйти","");return h}
 function accHandlers(d,g){
@@ -876,6 +925,9 @@ const openTg=u=>TGW&&TGW.openTelegramLink?TGW.openTelegramLink(u):open(u);
 const openLink=u=>TGW&&TGW.openLink?TGW.openLink(u):open(u,"_blank");
 
 $("#main").onclick=e=>{const t=e.target;if(t.closest&&t.closest("#smw,#kw"))return;
+ const rp=t.closest("[data-reply]");if(rp)return setReply(+rp.dataset.reply);
+ const rc=t.closest("[data-rx]");if(rc){const[i,k]=rc.dataset.rx.split("|");return react(+i,k)}
+ const gt=t.closest("[data-goto]");if(gt){const el=document.querySelector('#chat [data-mid="'+gt.dataset.goto+'"]');if(el){el.scrollIntoView({block:"center"});el.classList.add("sel");setTimeout(()=>el.classList.remove("sel"),1200)}return}
  if(t.dataset&&t.dataset.vt){S[t.dataset.vt]=t.checked;try{localStorage.setItem("noem_"+t.dataset.vt,t.checked?"1":"0")}catch(e){}return route()}
   if(t.dataset&&t.dataset.showall!==undefined){S.showAll=t.checked;return route()}
  const am=t.closest("[data-assign-m]");if(am){const p=mm(+am.dataset.assignM);if(p)scenesAssignSheet(p);return}
@@ -912,7 +964,7 @@ $("#main").onclick=e=>{const t=e.target;if(t.closest&&t.closest("#smw,#kw"))retu
  const im=t.closest(".msg img");if(im&&im.src){const l=document.createElement("div");l.className="lb";l.innerHTML=`<img src="${im.src}">`;l.onclick=()=>l.remove();document.body.append(l);
   const full=im.dataset.full;if(full&&full!==im.dataset.fid)fileBlob(full).then(u=>{const x=l.querySelector("img");if(x)x.src=u}).catch(()=>{})}};
 $("#foot").onclick=e=>{const a=e.target.closest("[data-act]");if(!a)return;
- if(a.dataset.act==="asfile"){S.asFile=!S.asFile;modeLine()}if(a.dataset.act==="dropfile"){S.pendingFile=null;S.asFile=false;modeLine()}};
+ if(a.dataset.act==="norply"){S.replyTo=null;modeLine()}if(a.dataset.act==="asfile"){S.asFile=!S.asFile;modeLine()}if(a.dataset.act==="dropfile"){S.pendingFile=null;S.asFile=false;modeLine()}};
 
 /* ---------- опрос сервера ---------- */
 let pollT=null,polling=false;
@@ -1045,11 +1097,11 @@ async function bkExport(){
   const webGet=async u=>{const r=await fetch(u);if(!r.ok)throw new Error("HTTP "+r.status);return r.blob()};
   for(const x of msgs){const c=catOf(x);if(!c||!o[c])continue;const p=(fold[x.shot_id]||"media/_без кадра")+"/chat/"+(c==="img"?"images":c==="vid"?"videos":"files")+"/"+x.id+"_"+safeN(x.file_name);
    files[x.file_id]=p;if(c==="img"&&x.thumb_id)files[x.thumb_id]=p;tasks.push({p,get:()=>tgGet(x.file_id)})}
-  if(o.sb){for(const h of core.shots){const f=fold[h.id];
+  if(o.sb||o.db){const cvr=new Set(core.shots.filter(x=>x.cover).map(x=>x.id));if(o.sb)for(const h of core.shots){const f=fold[h.id];
     (h.img_files||[]).forEach(n=>{if(!n)return;const p=f+"/storyboard/"+safeN(n);gh[n]=p;tasks.push({p,get:()=>webGet(mediaUrl(n))})});
     if(h.full_id){const p=f+"/storyboard/telegram_1.jpg";files[h.full_id]=p;tasks.push({p,get:()=>tgGet(h.full_id)})}
     (h.full_extra||[]).forEach((e,i)=>{if(e&&e.id){const p=f+"/storyboard/telegram_"+(i+2)+".jpg";files[e.id]=p;tasks.push({p,get:()=>tgGet(e.id)})}})}
-   let after="";for(;;){say("Раскадровка: обложки");const r=await call("export_data",{part:"thumbs",after});for(const t of r.rows){if(!fold[t.shot_id])continue;const p=fold[t.shot_id]+"/storyboard/cover.jpg";thumbs[t.shot_id]=p;await Z.add(p,await (await fetch(t.data)).blob())}
+   let after="";for(;;){say("Раскадровка: обложки");const r=await call("export_data",{part:"thumbs",after});for(const t of r.rows){if(!fold[t.shot_id]||(!o.sb&&!cvr.has(t.shot_id)))continue;const p=fold[t.shot_id]+"/storyboard/cover.jpg";thumbs[t.shot_id]=p;await Z.add(p,await (await fetch(t.data)).blob())}
     if(r.rows.length<15)break;after=r.rows[r.rows.length-1].shot_id}}
   if(o.docs&&core.project){const pj=core.project,g=pj.doc_mode==="github";
    for(const k of["lit","dir","chars"]){const id=pj[k+"_file_id"];
@@ -1078,7 +1130,7 @@ async function backupLoad(f,d){
    if(d.project)await send("project",[],{data:{title:d.project.title}})}
   else if(o.sb)await chunks("shots_sb",d.shots||[],100);
   if(o.docs&&d.project)await send("project",[],{data:d.project});
-  if(o.sb&&idx){const e=Object.entries(d.thumbs||{});for(let i=0;i<e.length;i+=6){say("обложки: "+Math.min(i+6,e.length)+" из "+e.length);const rows=[];
+  if((o.sb||o.db)&&idx){const cvs=new Set((d.shots||[]).filter(x=>x.cover).map(x=>x.id)),e=Object.entries(d.thumbs||{}).filter(([k])=>o.sb||cvs.has(k));for(let i=0;i<e.length;i+=6){say("обложки: "+Math.min(i+6,e.length)+" из "+e.length);const rows=[];
     for(const[sid,p]of e.slice(i,i+6)){const b=zBlob(f,idx,p);if(b)rows.push({shot_id:sid,data:await toDataUrl(b)})}await send("thumbs",rows)}}
   if(o.chat){const ms=(d.messages||[]).map(x=>{const c=catOf(x);if(c&&!o[c]){const y={...x};["file_id","thumb_id","file_kind","file_name","file_size"].forEach(k=>y[k]=null);return y}return x});await chunks("messages",ms,300)}
   await send("end",[],{last:true});
