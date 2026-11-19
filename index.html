@@ -30,6 +30,7 @@ header h1{font:600 15px "Unbounded",sans-serif;flex:1;min-width:0;white-space:no
 .btn.ghost{background:none;border:1px solid var(--line);color:var(--ink)}
 .btn.sm{padding:7px 13px;font-size:13px;flex:none;white-space:nowrap}
 #bell{position:relative}
+.mcs{display:flex;flex-direction:column;gap:4px;margin:6px 0}.mc{align-self:flex-start;max-width:92%;background:var(--bg);border:1px solid var(--line);border-radius:12px 12px 12px 4px;padding:5px 9px;font-size:13px;white-space:normal;word-break:break-word}.mc b{display:block;font-size:11px;opacity:.7;font-weight:600}
 .fh{cursor:pointer;user-select:none;-webkit-user-select:none}.fa{display:inline-block;width:14px;font-size:12px;opacity:.7;flex:none}
 .bdg{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;background:var(--s3);color:#fff;font-size:10px;font-weight:600;display:grid;place-items:center;padding:0 4px;pointer-events:none}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--acc);margin-right:6px;vertical-align:middle}
@@ -286,7 +287,7 @@ function toast(t){const e=document.createElement("div");e.className="toast";e.te
 /* ---------- сеть ---------- */
 async function call(action, data){
   if(S.off)return offCall(action,data||{});
-  const r = await fetch(API, {method:"POST", headers:{"content-type":"application/json",...AH()}, body:JSON.stringify({action, cid:CID, ...data})});
+  const r = await fetch(API, {method:"POST", headers:{"content-type":"application/json",...AH()}, body:JSON.stringify({cid:CID, ...data, action})});
   return handle(r);
 }
 async function handle(r){
@@ -633,6 +634,7 @@ function rolesSheet(){const d=sheet("");const draw=()=>{d.firstChild.innerHTML=`
  d.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{const n=b.dataset.del;if(!await askYes("Удалить должность «"+n+"»? У людей с ней должность сбросится."))return;try{await call("del_role",{name:n});S.roles=S.roles.filter(r=>r.name!==n);S.members.forEach(p=>{if(p.role===n)p.role=null});draw()}catch(e){toast(errText(e))}})};draw()}
 
 function viewShot(id){const h=S.shots.find(x=>x.id===id),m=$("#main");if(!h){m.innerHTML=`<div class="empty">Кадр не найден</div>`;return}
+ if(S.unread&&!S.off)call("notif_read_shot",{shot_id:id}).then(r=>{if(typeof r.unread==="number"){S.unread=r.unread;updBell()}}).catch(()=>{});
  $("#ttl").textContent=shotTitle(h);
  m.innerHTML=`<div class="wrap"><div id="hd"></div><div id="lv"></div><div id="pn"></div><div class="h2">Чат кадра</div><div id="chat"></div></div>`;
  S.loud=false;S.ss={};{const cs=isSnd(h)?null:(S.stages.find(s=>s.id===h.cur_stage)||S.stages[0]);S.stage=cs?cs.id:null}headSig="";paintHead(true);
@@ -818,7 +820,7 @@ async function addScene(){const v=await formSheet("Новая сцена",[{k:"n
 async function addShot(sceneId){if(!S.scenes.some(s=>s.id===sceneId))return;
  const v=await formSheet("Новый кадр",[{k:"num",l:"Номер кадра",v:nextNum(S.shots.filter(h=>!isSnd(h)).map(h=>h.num),4)},{k:"action",l:"Описание кадра",area:1}]);
  if(!v)return;if(!v.num)return toast("Укажите номер кадра");
- try{const r=await call("add_shot",{scene:sceneId,...v});mergeShots([r.shot]);S.project=r.project;route();toast("Кадр добавлен")}catch(e){toast(errText(e))}}
+ try{const r=await call("add_shot",{scene:sceneId,num:v.num,descr:v.action});mergeShots([r.shot]);S.project=r.project;route();toast("Кадр добавлен")}catch(e){toast(errText(e))}}
 async function addSound(){const v=await formSheet("Новая задача по звуку",[{k:"title",l:"Задача (например: Озвучка сцены 5)"},{k:"notes",l:"Описание (необязательно)",area:1}]);
  if(!v)return;if(!v.title)return toast("Укажите название задачи");
  try{const r=await call("add_sound",v);mergeShots([r.shot]);S.project=r.project;route();toast("Задача добавлена")}catch(e){toast(errText(e))}}
@@ -839,7 +841,7 @@ async function editItem(kind,id){
  d.querySelector("#eno").onclick=()=>d.remove();d.addEventListener("click",e=>{if(e.target===d)d.remove()});
  d.querySelector("#eok").onclick=async()=>{const o={};d.querySelectorAll("[data-k]").forEach(e=>o[e.dataset.k]=e.value.trim());
   if(!o.num)return toast("Укажите номер");if(snd&&!o.action)return toast("Укажите название задачи");
-  try{let r=await call("edit_shot",{id:h.id,...o});let nh=r.shot;S.project=r.project||S.project;
+  try{const {action:ds,...ro}=o;let r=await call("edit_shot",{id:h.id,...ro,descr:ds});let nh=r.shot;S.project=r.project||S.project;
    if(cover!==undefined){const c=await call("set_cover",{id:h.id,data:cover});nh=c.shot;if(cover)S.thumbs[h.id]=cover;else delete S.thumbs[h.id]}
    mergeShots([nh]);d.remove();headSig="";route();toast("Сохранено")}catch(e){toast(errText(e))}}}
 async function rmItem(kind,id){
@@ -856,14 +858,21 @@ const dmTg=mt=>S.me.web_only||S.off?"":`<label class="card" style="cursor:pointe
 const dmBind=d=>{const c=d.querySelector("#ndm");if(c)c.onchange=async()=>{const on=c.checked;try{const r=await call("set_notif_dm",{on});S.me.notif_dm=!!r.on;toast(on?"Уведомления будут приходить в личку":"Уведомления в личку выключены")}catch(e){c.checked=!on;toast(errText(e))}}};
 function updBell(){const b=$("#bdg");if(!b)return;b.hidden=!S.unread;b.textContent=S.unread>99?"99+":String(S.unread||"")}
 function notifSheet(){const d=sheet(`<div class="row" style="justify-content:space-between;flex-wrap:nowrap;margin-bottom:8px"><div class="h2" style="margin:0">Уведомления</div><button class="chip" id="nra" style="--c:var(--acc)">Прочитать все</button></div>${dmTg(false)}<div id="nl"><div class="sub">Загрузка…</div></div>`);
- dmBind(d);let items=[];const when=ts=>new Date(ts).toLocaleString("ru",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
- const paint=()=>{d.querySelector("#nl").innerHTML=items.length?items.map(n=>`<button class="card" data-n="${n.id}" style="${n.read?"opacity:.65":""}"><span class="grow"><div class="t" style="white-space:normal">${n.read?"":'<span class="dot"></span>'}${esc(n.text)}</div><div class="sub">${when(n.ts)}${n.shot_id?" · открыть кадр ›":""}</div></span></button>`).join(""):`<div class="empty">Уведомлений пока нет</div>`};
+ dmBind(d);let items=[],ents=[];const when=ts=>new Date(ts).toLocaleString("ru",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+ const shotName=id=>{const h=S.shots.find(x=>x.id===id);return h?(isSnd(h)?"Звук "+h.num:"Кадр "+h.num):"Задача"};
+ /* сообщения чата одной задачи собираются в одну карточку-мини-чат (новые и прочитанные отдельно) */
+ const build=()=>{ents=[];const gm={};items.forEach(n=>{if(n.kind==="chat"&&n.shot_id){const k=n.shot_id+(n.read?":r":":u");let g=gm[k];if(!g){g=gm[k]={g:1,shot_id:n.shot_id,read:!!n.read,items:[],ts:n.ts};ents.push(g)}g.items.push(n)}else ents.push(n)});ents.forEach(e=>{if(e.g)e.items.sort((a,b)=>a.id-b.id)})};
+ const bub=n=>`<div class="mc"><b>${esc(n.by_name||"")}</b>${esc(n.text||"")}</div>`;
+ const gcard=(e,i)=>{const L=e.items,more=L.length>=5,sh=more?L.slice(-4):L;return`<button class="card" data-g="${i}" style="display:block;width:100%;text-align:left;${e.read?"opacity:.65":""}"><div class="t" style="white-space:normal">${e.read?"":'<span class="dot"></span>'}💬 ${esc(shotName(e.shot_id))}: ${e.read?"сообщения":"новые сообщения"} (${L.length})</div><div class="mcs">${sh.map(bub).join("")}</div>${more?`<div class="sub" style="-webkit-line-clamp:unset;margin-bottom:2px">… читать всю переписку</div>`:""}<div class="sub">${when(e.ts)} · открыть кадр ›</div></button>`};
+ const paint=()=>{build();d.querySelector("#nl").innerHTML=ents.length?ents.map((n,i)=>n.g?gcard(n,i):`<button class="card" data-n="${n.id}" style="${n.read?"opacity:.65":""}"><span class="grow"><div class="t" style="white-space:normal">${n.read?"":'<span class="dot"></span>'}${esc(n.text)}</div><div class="sub">${when(n.ts)}${n.shot_id?" · открыть кадр ›":""}</div></span></button>`).join(""):`<div class="empty">Уведомлений пока нет</div>`};
  call("notifs",{}).then(r=>{items=r.items||[];S.unread=r.unread||0;updBell();paint()}).catch(e=>{const n=d.querySelector("#nl");if(n)n.innerHTML=`<div class="sub">Не удалось загрузить: ${esc(errText(e))}</div>`});
+ const goShot=id=>{d.remove();if(S.shots.some(h=>h.id===id))go("shot-"+id);else toast("Кадр больше не найден")};
  d.addEventListener("click",async e=>{
   if(e.target.closest("#nra")){try{const r=await call("notif_read",{all:true});S.unread=r.unread||0;items.forEach(n=>n.read=true);updBell();paint()}catch(x){toast(errText(x))}return}
+  const gb=e.target.closest("[data-g]");if(gb){const g=ents[+gb.dataset.g];if(!g)return;const ids=g.items.filter(x=>!x.read).map(x=>x.id);if(ids.length){g.items.forEach(x=>x.read=true);S.unread=Math.max(0,S.unread-ids.length);updBell();call("notif_read",{ids}).then(r=>{S.unread=r.unread||0;updBell()}).catch(()=>{})}goShot(g.shot_id);return}
   const b=e.target.closest("[data-n]");if(!b)return;const n=items.find(x=>x.id===+b.dataset.n);if(!n)return;
   if(!n.read){n.read=true;S.unread=Math.max(0,S.unread-1);updBell();call("notif_read",{ids:[n.id]}).then(r=>{S.unread=r.unread||0;updBell()}).catch(()=>{})}
-  if(n.shot_id){d.remove();if(S.shots.some(h=>h.id===n.shot_id))go("shot-"+n.shot_id);else toast("Кадр больше не найден")}else paint()})}
+  if(n.shot_id)goShot(n.shot_id);else paint()})}
 function shotSheet(){const h=S.shots.find(x=>x.id===S.curShot);if(!h)return;
  const own=S.me.owner||S.me.role==="Продюсер";
  const d=sheet(`<div class="h2" style="margin-top:0">Настройки кадра ${esc(h.num)}</div><button class="card" id="ap" style="width:100%;text-align:left;margin-bottom:10px">⚙ Настройки приложения (имя и др.)</button>${h.topic_id&&S.chat?`<button class="card" id="ot" style="width:100%;text-align:left">↗ Открыть топик в Telegram</button>`:`<div class="sub">Топик создастся при первом сообщении</div>`}${S.me.owner?`<button class="card" id="si" style="width:100%;text-align:left;margin-top:10px">⇪ Загрузить .noemtoline / .noemocean</button>`:""}${has("deadlines")?`<div class="sub" style="margin-top:12px">Дедлайн</div><div class="row"><input type="date" class="inp" id="dlv" value="${h.deadline||""}"><button class="btn sm" id="dls">Сохранить</button></div>`:""}${own?"":`<label class="note" style="display:block;margin-top:12px"><input type="checkbox" id="sa2" ${S.showAll?"checked":""}> Показать задачи, на которые вы не назначены</label><div class="sub" style="-webkit-line-clamp:unset">Чат таких кадров можно читать, но писать в него и менять статус нельзя.</div>`}`);
@@ -955,7 +964,7 @@ $("#main").onclick=e=>{const t=e.target;if(t.closest&&t.closest("#smw,#kw"))retu
   if(k==="folder"){if(!pj.folder_url)return toast("Пока не доступно");return openLink(pj.folder_url)}
   if(k==="sound")return go("sound");if(k==="cal")return go("cal");if(k==="fin")return go("fin");
   if(!(DOCF[k]&&ghDoc())&&!pj[k+"_file_id"])return toast("Пока не доступно");return go(k==="anim"?"anim":"doc-"+k)}
- const ad=t.closest("[data-add]");if(ad){const k=ad.dataset.add;if(k==="scene")return addScene();if(k==="shot")return addShot(parse()[1]);if(k==="snd")return addSound()}
+ const ad=t.closest("[data-add]");if(ad){const k=ad.dataset.add;if(k==="scene")return addScene();if(k==="shot")return addShot(ad.dataset.scene||parse()[1]);if(k==="snd")return addSound()}
  const ed=t.closest("[data-ed]");if(ed){const i=ed.dataset.ed.indexOf(":");return editItem(ed.dataset.ed.slice(0,i),ed.dataset.ed.slice(i+1))}
   const rm=t.closest("[data-rm]");if(rm){const i=rm.dataset.rm.indexOf(":");return rmItem(rm.dataset.rm.slice(0,i),rm.dataset.rm.slice(i+1))}
  const oa=t.closest("[data-open-anim]");if(oa){const pj=S.project||{};return openTg("https://t.me/c/"+S.chat+"/"+pj.anim_msg)}
@@ -1195,7 +1204,7 @@ function statusList(V){let h="";const scs=S.scenes.filter(s=>s.id!==SND).sort((a
   scs.forEach(s=>{const b=a.filter(x=>x.scene===s.id).sort((x,y)=>x.ord-y.ord);if(!b.length)return;const ck="sc:"+st[0]+":"+s.id,c2=!!S.fold[ck];
    h+=`<div class="sub fh" data-fold="${esc(ck)}" style="margin:6px 2px 4px"><span class="fa">${c2?"▸":"▾"}</span>Сц ${esc(s.num||"–")} · ${esc(s.title||"")} <span>(${b.length})</span></div>`+(c2?"":b.map(x=>shotCard(x,false)).join(""))})});
  return h||`<div class="empty">Кадров нет</div>`}
-const openShots=s=>`<div style="margin:-4px 0 10px 12px">${[...shotsOf(s.id)].sort((a,b)=>a.ord-b.ord).map(h=>shotCard(h,manage())).join("")}</div>`;
+const openShots=s=>`<div style="margin:-4px 0 10px 12px">${[...shotsOf(s.id)].sort((a,b)=>a.ord-b.ord).map(h=>shotCard(h,manage())).join("")}${manage()?`<button class="btn" data-add="shot" data-scene="${esc(s.id)}" style="margin-top:4px">＋ Добавить кадр</button>`:""}</div>`;
 function scenesAfter(V,SC){let ids=[];if(S.byStatus)ids=V.filter(h=>{const k=ST.some(x=>x[0]===h.status)?h.status:ST[0][0];return !S.fold["st:"+k]&&!S.fold["sc:"+k+":"+h.scene]}).map(h=>h.id);else if(S.onePage)SC.forEach(s=>{if(S.open[s.id])shotsOf(s.id).forEach(h=>ids.push(h.id))});if(ids.length){paintThumbs();ensureThumbs(ids)}}
 /* --- календарь --- */
 function viewCal(){$("#main").innerHTML=`<div class="wrap" style="padding-bottom:0"><div class="row"><button class="btn ${calTab==="cal"?"":"ghost"}" data-ct="cal">Календарь</button><button class="btn ${calTab==="kpp"?"":"ghost"}" data-ct="kpp">КПП</button></div></div><div id="cb"></div>`;if(calTab==="kpp")return viewKpp();const m=$("#cb"),DL=has("deadlines"),now=new Date(),pad=n=>String(n).padStart(2,"0");
